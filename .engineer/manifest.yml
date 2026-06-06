@@ -1,4 +1,5 @@
 version: "1"
+methodology_version: "0.2"
 
 # ---------------------------------------------------------------------------
 # Paths
@@ -17,8 +18,11 @@ repos:
     default_branch: main
 
 # ---------------------------------------------------------------------------
-# Tracker
+# Roadmap + Tracker
 # ---------------------------------------------------------------------------
+roadmap:
+  type: linear
+
 tracker:
   type: linear
   url: https://linear.app/ucalyptus/project/kando-f02dfdc278fb/overview
@@ -49,15 +53,9 @@ validation:
     available:
       - gh
     suggested:
-      - name: docker
-        reason: docker-compose.yml present
-        install: "brew install --cask docker"
-      - name: make
-        reason: Makefile present
-        install: "xcode-select --install"
-      - name: pytest
-        reason: test suite present
-        install: "make dev-setup"
+      - docker
+      - make
+      - pytest
   staging: ~
   prod:
     docs_url: https://kando.ucalyptus.me
@@ -67,13 +65,13 @@ validation:
 # Infra
 # ---------------------------------------------------------------------------
 infra:
-  - name: eventstore
-    start: "docker compose up -d eventstore"
-    stop: "docker compose down eventstore"
+  eventstore:
     health:
-      tcp: 2113
-    optional: true
-    note: "Required only for durable ledger runs (EVENTSTORE_URL=http://localhost:2113)"
+      type: tcp
+      port: 2113
+    start:
+      command: "docker compose up -d eventstore"
+    teardown: leave-running
 
 # ---------------------------------------------------------------------------
 # Infra quirks

@@ -48,8 +48,11 @@ def load_snapshot(run_id: str) -> tuple[World, int] | None:
     path = _snapshot_path(run_id)
     if not path.exists():
         return None
-    payload = json.loads(path.read_text())
-    return _world_from_dict(payload["world"]), payload["position"]
+    try:
+        payload = json.loads(path.read_text())
+        return _world_from_dict(payload["world"]), payload["position"]
+    except Exception:
+        return None
 
 
 def save_snapshot(run_id: str, world: World, position: int) -> None:
