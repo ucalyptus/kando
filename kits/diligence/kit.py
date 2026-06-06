@@ -6,7 +6,10 @@ from datetime import datetime, timezone
 from typing import Iterator
 
 from kando.responders.base import Responder
-from kando.schema.events import KandoEvent, OBJECT_CREATED, RELATION_CREATED, make_event
+from kando.schema.events import (
+    KandoEvent, OBJECT_CREATED, OBJECT_PATCHED, RELATION_CREATED,
+    LLM_REQUEST, LLM_RESPONSE, make_event,
+)
 from kando.world.graph import World
 
 
@@ -213,6 +216,68 @@ def _on_report_requested(event: KandoEvent, world: World) -> Iterator[KandoEvent
     )
 
 
+def _on_pending_claim_created(event: KandoEvent, world: World) -> Iterator[KandoEvent]:
+    """When a pending-research Claim is created, emit an LLM_REQUEST to fill it in."""
+    if event.data.get("type") != CLAIM:
+        return
+    claim_text = event.data.get("data", {}).get("text", "")
+    if not claim_text.startswith("Pending research"):
+        return
+
+    global _COUNTER
+    claim_id = event.data["id"]
+    company_id = event.data.get("data", {}).get("company_id", "")
+    company_name = (
+        world.objects[company_id].data.get("name", company_id)
+        if company_id in world.objects
+        else company_id
+    )
+
+    _COUNTER += 1
+    yield make_event(
+        type=LLM_REQUEST,
+        source=event.source,
+        actor="diligence.on_pending_claim_created",
+        cause=[event.id],
+        data={
+            "messages": [{
+                "role": "user",
+                "content": (
+                    f"Provide a brief due diligence summary for {company_name}. "
+                    "Cover: key facts, business model, risks, and recent developments."
+                ),
+            }],
+            "model": "claude-haiku-4-5-20251001",
+            "max_tokens": 1024,
+            "cause_object_id": claim_id,
+        },
+        run_id_counter=_COUNTER,
+    )
+
+
+def _on_llm_response(event: KandoEvent, world: World) -> Iterator[KandoEvent]:
+    """When an LLM response arrives for a Claim, patch it with real content."""
+    claim_id = event.data.get("cause_object_id", "")
+    if not claim_id or claim_id not in world.objects:
+        return
+    if world.objects[claim_id].type != CLAIM:
+        return
+
+    global _COUNTER
+    _COUNTER += 1
+    yield make_event(
+        type=OBJECT_PATCHED,
+        source=event.source,
+        actor="diligence.on_llm_response",
+        cause=[event.id],
+        data={
+            "id": claim_id,
+            "patch": {"text": event.data.get("text", ""), "status": "complete"},
+        },
+        run_id_counter=_COUNTER,
+    )
+
+
 # ---------------------------------------------------------------------------
 # Kit factory
 # ---------------------------------------------------------------------------
@@ -260,5 +325,15 @@ def create_kit() -> list[Responder]:
             name="diligence.on_report_requested",
             pattern=frozenset({OBJECT_CREATED}),
             fn=_on_report_requested,
+        ),
+        Responder(
+            name="diligence.on_pending_claim_created",
+            pattern=frozenset({OBJECT_CREATED}),
+            fn=_on_pending_claim_created,
+        ),
+        Responder(
+            name="diligence.on_llm_response",
+            pattern=frozenset({LLM_RESPONSE}),
+            fn=_on_llm_response,
         ),
     ]

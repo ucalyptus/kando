@@ -94,6 +94,34 @@ def test_contradiction_creates_contradicts_relation():
     assert CONTRADICTS in rel_types
 
 
+def test_pending_claim_emits_llm_request():
+    from kando.schema.events import LLM_REQUEST
+    seed = seed_from_goal("Nvidia", "run00010")
+    store = MemoryLedgerStore("dil-llm-req")
+    Runtime(ledger=store, responders=create_kit()).run(seed)
+    all_events = list(store.read_all())
+    llm_reqs = [e for e in all_events if e.type == LLM_REQUEST]
+    assert len(llm_reqs) == 1
+    assert "Nvidia" in llm_reqs[0].data["messages"][0]["content"]
+
+
+def test_executor_patches_claim_to_complete():
+    from kando.responders.llm_executor import LLMExecutorResponder
+
+    def fake_llm(messages, model, max_tokens):
+        return "Fake diligence: " + messages[0]["content"][:20], 0.001
+
+    seed = seed_from_goal("Tesla", "run00011")
+    store = MemoryLedgerStore("dil-executor")
+    responders = create_kit() + [LLMExecutorResponder(fake_llm)]
+    world = Runtime(ledger=store, responders=responders).run(seed)
+
+    claims = [o for o in world.objects.values() if o.type == CLAIM]
+    assert len(claims) == 1
+    assert claims[0].data.get("status") == "complete"
+    assert claims[0].data.get("text", "").startswith("Fake diligence")
+
+
 def test_report_creates_depends_on_relation():
     store = MemoryLedgerStore("dil-report")
     seed = seed_from_goal("ReportCo", "run00003")

@@ -39,6 +39,19 @@ def test_projecting_in_reverse_order_fails():
     assert forward_world.objects["o1"].data != reversed_world.objects["o1"].data
 
 
+def test_duplicate_object_created_is_last_write_wins():
+    """A second OBJECT_CREATED with the same id overwrites the first (pending→complete)."""
+    events = [
+        KandoEvent("e1", OBJECT_CREATED, "run:r", "t", [], ts(),
+                   {"id": "f1", "type": "Finding", "data": {"text": "[Pending]", "status": "pending"}}),
+        KandoEvent("e2", OBJECT_CREATED, "run:r", "t", ["e1"], ts(),
+                   {"id": "f1", "type": "Finding", "data": {"text": "Real answer", "status": "complete"}}),
+    ]
+    world = project(iter(events))
+    assert world.objects["f1"].data["status"] == "complete"
+    assert world.objects["f1"].data["text"] == "Real answer"
+
+
 def test_multiple_independent_projections_are_identical():
     events = [
         KandoEvent("e1", OBJECT_CREATED, "run:r", "t", [], ts(),

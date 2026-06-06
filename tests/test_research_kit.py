@@ -78,10 +78,41 @@ def test_synthesizes_relation_links_to_goal():
     assert len(synth_rels) == 1
 
 
-def test_create_kit_returns_three_responders():
+def test_create_kit_returns_five_responders():
     responders = create_kit()
-    assert len(responders) == 3
+    assert len(responders) == 5
     names = {r.name for r in responders}
     assert "research.on_goal_created" in names
     assert "research.on_question_created" in names
     assert "research.on_finding_created" in names
+    assert "research.on_pending_finding_created" in names
+    assert "research.on_llm_response" in names
+
+
+def test_pending_finding_emits_llm_request():
+    """Each question should produce an LLM_REQUEST when no executor is wired."""
+    from kando.schema.events import LLM_REQUEST
+    seed = seed_from_goal("Fusion energy", "run007")
+    store = MemoryLedgerStore("research-llm-req")
+    Runtime(ledger=store, responders=create_kit()).run(seed)
+    all_events = list(store.read_all())
+    llm_reqs = [e for e in all_events if e.type == LLM_REQUEST]
+    assert len(llm_reqs) == 3  # one per question
+
+
+def test_executor_patches_findings_to_complete():
+    """With a fake executor wired in, findings should be patched to status=complete."""
+    from kando.schema.events import OBJECT_PATCHED
+    from kando.responders.llm_executor import LLMExecutorResponder
+
+    def fake_llm(messages, model, max_tokens):
+        return "Fake answer: " + messages[0]["content"][:30], 0.001
+
+    seed = seed_from_goal("Space tourism", "run008")
+    store = MemoryLedgerStore("research-executor")
+    responders = create_kit() + [LLMExecutorResponder(fake_llm)]
+    world = Runtime(ledger=store, responders=responders).run(seed)
+
+    findings = [o for o in world.objects.values() if o.type == FINDING]
+    assert all(f.data.get("status") == "complete" for f in findings)
+    assert all(f.data.get("text", "").startswith("Fake answer") for f in findings)

@@ -6,7 +6,10 @@ from datetime import datetime, timezone
 from typing import Iterator
 
 from kando.responders.base import Responder
-from kando.schema.events import KandoEvent, OBJECT_CREATED, RELATION_CREATED, make_event
+from kando.schema.events import (
+    KandoEvent, OBJECT_CREATED, OBJECT_PATCHED, RELATION_CREATED,
+    LLM_REQUEST, LLM_RESPONSE, make_event,
+)
 from kando.world.graph import World
 
 
@@ -251,6 +254,57 @@ def _on_finding_created(event: KandoEvent, world: World) -> Iterator[KandoEvent]
     )
 
 
+def _on_pending_finding_created(event: KandoEvent, world: World) -> Iterator[KandoEvent]:
+    """When a pending Finding is created, emit an LLM_REQUEST to fill it in."""
+    if event.data.get("type") != FINDING:
+        return
+    if event.data.get("data", {}).get("status") != "pending":
+        return
+
+    global _COUNTER
+    finding_id = event.data["id"]
+    q_id = event.data.get("data", {}).get("question_id", "")
+    q_text = world.objects[q_id].data.get("text", "") if q_id in world.objects else ""
+
+    _COUNTER += 1
+    yield make_event(
+        type=LLM_REQUEST,
+        source=event.source,
+        actor="research.on_pending_finding_created",
+        cause=[event.id],
+        data={
+            "messages": [{"role": "user", "content": q_text}],
+            "model": "claude-haiku-4-5-20251001",
+            "max_tokens": 1024,
+            "cause_object_id": finding_id,
+        },
+        run_id_counter=_COUNTER,
+    )
+
+
+def _on_llm_response(event: KandoEvent, world: World) -> Iterator[KandoEvent]:
+    """When an LLM response arrives for a Finding, patch it with real content."""
+    finding_id = event.data.get("cause_object_id", "")
+    if not finding_id or finding_id not in world.objects:
+        return
+    if world.objects[finding_id].type != FINDING:
+        return
+
+    global _COUNTER
+    _COUNTER += 1
+    yield make_event(
+        type=OBJECT_PATCHED,
+        source=event.source,
+        actor="research.on_llm_response",
+        cause=[event.id],
+        data={
+            "id": finding_id,
+            "patch": {"text": event.data.get("text", ""), "status": "complete"},
+        },
+        run_id_counter=_COUNTER,
+    )
+
+
 # ---------------------------------------------------------------------------
 # Kit factory
 # ---------------------------------------------------------------------------
@@ -288,5 +342,15 @@ def create_kit() -> list[Responder]:
             name="research.on_finding_created",
             pattern=frozenset({OBJECT_CREATED}),
             fn=_on_finding_created,
+        ),
+        Responder(
+            name="research.on_pending_finding_created",
+            pattern=frozenset({OBJECT_CREATED}),
+            fn=_on_pending_finding_created,
+        ),
+        Responder(
+            name="research.on_llm_response",
+            pattern=frozenset({LLM_RESPONSE}),
+            fn=_on_llm_response,
         ),
     ]
