@@ -22,7 +22,9 @@ repos:
 tracker:
   type: linear
   url: https://linear.app/ucalyptus/project/kando-f02dfdc278fb/overview
-  note: "Linear driver not yet implemented in DAE tooling — feature folders are the operational tracker."
+  team: Sayantan Das
+  team_key: SAY
+  mcp_server: linear-server
 
 # ---------------------------------------------------------------------------
 # Team

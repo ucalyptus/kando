@@ -11,21 +11,21 @@ Tracker: [Linear](https://linear.app/ucalyptus/project/kando-f02dfdc278fb/overvi
 
 ## Coverage table
 
-| # | Feature | status | code location | feature.md | acs.md | spec.md | acc. tests |
-|---|---------|--------|---------------|:---:|:---:|:---:|:---:|
-| 001 | world | shipped | `kando/world/` | ❌ | ❌ | ❌ | ❌ |
-| 002 | ledger | shipped | `kando/ledger/` | ❌ | ❌ | ❌ | ❌ |
-| 003 | runtime | shipped | `kando/runtime.py` | ❌ | ❌ | ❌ | ❌ |
-| 004 | research-kit | shipped | `kits/research/` | ❌ | ❌ | ❌ | ❌ |
-| 005 | llm-executor | shipped | `kando/responders/llm_executor.py` + backends | ❌ | ❌ | ❌ | ❌ |
-| 006 | diligence-kit | shipped | `kits/diligence/` | ❌ | ❌ | ❌ | ❌ |
-| 007 | branch | shipped | `kando/branch/` | ❌ | ❌ | ❌ | ❌ |
-| 008 | cache | shipped | `kando/cache/` | ❌ | ❌ | ❌ | ❌ |
-| 009 | trace | shipped | `kando/trace/` | ❌ | ❌ | ❌ | ❌ |
-| 010 | budget-enforcer | shipped | `kando/responders/budget.py` | ❌ | ❌ | ❌ | ❌ |
-| 011 | cli | shipped | `kando/cli/main.py` | ❌ | ❌ | ❌ | ❌ |
-| 012 | mcp-server | shipped | `kando/mcp/server.py` | ❌ | ❌ | ❌ | ❌ |
-| 013 | delivery-bus | shipped | `kando/responders/delivery.py` | ❌ | ❌ | ❌ | ❌ |
+| # | Feature | status | Linear | code location | feature.md | acs.md | spec.md | acc. tests |
+|---|---------|--------|--------|---------------|:---:|:---:|:---:|:---:|
+| 001 | world | shipped | [SAY-5](https://linear.app/ucalyptus/issue/SAY-5) | `kando/world/` | ✅ | ❌ | ❌ | ❌ |
+| 002 | ledger | shipped | [SAY-6](https://linear.app/ucalyptus/issue/SAY-6) | `kando/ledger/` | ❌ | ❌ | ❌ | ❌ |
+| 003 | runtime | shipped | [SAY-7](https://linear.app/ucalyptus/issue/SAY-7) | `kando/runtime.py` | ✅ | ❌ | ❌ | ❌ |
+| 004 | research-kit | shipped | [SAY-8](https://linear.app/ucalyptus/issue/SAY-8) | `kits/research/` | ❌ | ❌ | ❌ | ❌ |
+| 005 | llm-executor | shipped | [SAY-9](https://linear.app/ucalyptus/issue/SAY-9) | `kando/responders/llm_executor.py` + backends | ❌ | ❌ | ❌ | ❌ |
+| 006 | diligence-kit | shipped | [SAY-10](https://linear.app/ucalyptus/issue/SAY-10) | `kits/diligence/` | ❌ | ❌ | ❌ | ❌ |
+| 007 | branch | shipped | [SAY-11](https://linear.app/ucalyptus/issue/SAY-11) | `kando/branch/` | ❌ | ❌ | ❌ | ❌ |
+| 008 | cache | shipped | [SAY-12](https://linear.app/ucalyptus/issue/SAY-12) | `kando/cache/` | ❌ | ❌ | ❌ | ❌ |
+| 009 | trace | shipped | [SAY-13](https://linear.app/ucalyptus/issue/SAY-13) | `kando/trace/` | ❌ | ❌ | ❌ | ❌ |
+| 010 | budget-enforcer | shipped | [SAY-14](https://linear.app/ucalyptus/issue/SAY-14) | `kando/responders/budget.py` | ❌ | ❌ | ❌ | ❌ |
+| 011 | cli | shipped | [SAY-15](https://linear.app/ucalyptus/issue/SAY-15) | `kando/cli/main.py` | ❌ | ❌ | ❌ | ❌ |
+| 012 | mcp-server | shipped | [SAY-16](https://linear.app/ucalyptus/issue/SAY-16) | `kando/mcp/server.py` | ❌ | ❌ | ❌ | ❌ |
+| 013 | delivery-bus | shipped | [SAY-17](https://linear.app/ucalyptus/issue/SAY-17) | `kando/responders/delivery.py` | ❌ | ❌ | ❌ | ❌ |
 
 **Note:** `features/*.feature` and `features/steps/` exist as BDD infrastructure
 but are flat (not DAE-layout). They serve as raw material for reverse-engineering
