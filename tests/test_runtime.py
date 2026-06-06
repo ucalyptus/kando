@@ -155,3 +155,26 @@ def test_run_starts_from_existing_world():
     assert "existing" in world.objects
     assert world.objects["existing"].data.get("init") is True
     assert world.objects["existing"].data.get("updated") is True
+
+
+def test_runtime_exposes_cache_on_world_context():
+    from kando.cache.llm import LLMCache
+    cache = LLMCache()
+    cache.put({"model": "x", "prompt": "hello"}, {"text": "world"})
+
+    store = MemoryLedgerStore("cache-wiring-test")
+    runtime = Runtime(ledger=store, responders=[], cache=cache)
+    world = runtime.run([evt("seed", OBJECT_CREATED, [], {"id": "obj", "type": "T", "data": {}})])
+
+    assert "cache" in world.context
+    assert world.context["cache"] is cache
+    assert len(world.context["cache"]) == 1
+
+
+def test_runtime_creates_default_cache_when_none_provided():
+    from kando.cache.llm import LLMCache
+    store = MemoryLedgerStore("cache-default-test")
+    runtime = Runtime(ledger=store, responders=[])
+    world = runtime.run([evt("s", OBJECT_CREATED, [], {"id": "o", "type": "T", "data": {}})])
+    assert "cache" in world.context
+    assert isinstance(world.context["cache"], LLMCache)

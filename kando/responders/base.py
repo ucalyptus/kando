@@ -15,7 +15,7 @@ class Responder:
     fn: ResponderFn
 
     def matches(self, event: KandoEvent) -> bool:
-        return event.type in self.pattern
+        return not self.pattern or event.type in self.pattern
 
     def handle(self, event: KandoEvent, world: World) -> Iterator[KandoEvent]:
         yield from self.fn(event, world)
