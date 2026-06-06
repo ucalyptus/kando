@@ -1,4 +1,3 @@
-version: "3.9"
 services:
   eventstore:
     image: eventstore/eventstore:lts
@@ -15,6 +14,7 @@ services:
 
   kando:
     build: .
+    command: ["python", "-m", "kando.cli.main", "status", "demo"]
     depends_on:
       - eventstore
     environment:
