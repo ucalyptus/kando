@@ -87,6 +87,26 @@ def _on_company_created(event: KandoEvent, world: World) -> Iterator[KandoEvent]
 # Kit factory
 # ---------------------------------------------------------------------------
 
+def seed_from_goal(goal: str, run_id: str) -> list[KandoEvent]:
+    """Turn a free-text goal into seed events for a diligence run.
+
+    Treats the goal string as the company name to investigate.
+    """
+    from datetime import datetime, timezone
+    company_id = f"company-{run_id[:8]}"
+    return [
+        KandoEvent(
+            id=f"company.created-{run_id[:8]}",
+            type=OBJECT_CREATED,
+            source=f"run:{run_id}",
+            actor="cli",
+            cause=[],
+            timestamp=datetime.now(timezone.utc),
+            data={"id": company_id, "type": COMPANY, "data": {"name": goal}},
+        )
+    ]
+
+
 def create_kit() -> list[Responder]:
     """Return the list of responders that make up the diligence kit."""
     return [
