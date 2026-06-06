@@ -1,6 +1,6 @@
 from __future__ import annotations
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
 
@@ -30,3 +30,23 @@ TOOL_RETURNED       = "tool.returned"
 BRANCH_CREATED      = "branch.created"
 BUDGET_EXHAUSTED    = "budget.exhausted"
 KIT_LOADED          = "kit.loaded"
+
+
+def make_event(
+    type: str,
+    source: str,
+    actor: str,
+    cause: list[str],
+    data: dict[str, Any],
+    run_id_counter: int,
+) -> KandoEvent:
+    """Factory that generates a KandoEvent with a deterministic ID."""
+    return KandoEvent(
+        id=f"{type}-{run_id_counter}",
+        type=type,
+        source=source,
+        actor=actor,
+        cause=cause,
+        timestamp=datetime.now(timezone.utc),
+        data=data,
+    )

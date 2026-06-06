@@ -11,6 +11,31 @@ class WorldDiff:
     added_relations: list[str]
     removed_relations: list[str]
 
+    def __bool__(self) -> bool:
+        """True if any field is non-empty (i.e. there are actual differences)."""
+        return bool(
+            self.added_objects
+            or self.removed_objects
+            or self.patched_objects
+            or self.added_relations
+            or self.removed_relations
+        )
+
+    def summary(self) -> str:
+        """Human-readable one-line summary of the diff."""
+        parts = []
+        if self.added_objects:
+            parts.append(f"+{len(self.added_objects)} objects")
+        if self.removed_objects:
+            parts.append(f"-{len(self.removed_objects)} objects")
+        if self.patched_objects:
+            parts.append(f"~{len(self.patched_objects)} objects patched")
+        if self.added_relations:
+            parts.append(f"+{len(self.added_relations)} relations")
+        if self.removed_relations:
+            parts.append(f"-{len(self.removed_relations)} relations")
+        return ", ".join(parts) if parts else "no changes"
+
 
 def diff(world_a: World, world_b: World) -> WorldDiff:
     a_objs = set(world_a.objects)

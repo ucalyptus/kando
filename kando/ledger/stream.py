@@ -1,19 +1,16 @@
 from __future__ import annotations
-# KurrentDB-backed ledger store (Phase 1).
-# Placeholder — implementation forthcoming.
-
-from typing import Iterator
+from typing import Any, Iterator
 from kando.schema.events import KandoEvent
 
 
-class StreamLedgerStore:
-    """Durable ledger backed by a KurrentDB stream."""
+class EventStreamLedgerStore:
+    """Durable ledger backed by an append-only event stream. Backend-agnostic placeholder."""
 
-    def __init__(self, run_id: str, client) -> None:
+    def __init__(self, run_id: str, backend: Any) -> None:
         self._run_id = run_id
-        self._client = client
+        self._backend = backend
 
-    def append(self, events: list[KandoEvent]) -> None:
+    def append(self, events: list[KandoEvent]) -> int:
         raise NotImplementedError
 
     def read(self, from_position: int = 0) -> Iterator[KandoEvent]:

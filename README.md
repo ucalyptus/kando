@@ -4,12 +4,7 @@
 
 A production runtime for long-running agents where the event log is the agent, not a debugging artifact. Append-only log in, projected world out, reactive responders in between.
 
-Kando builds on two foundational projects and combines them into a single opinionated runtime:
-
-- [ActiveGraph](https://github.com/yoheinakajima/activegraph) (Yohei Nakajima) — the event-sourced reactive graph model for agents, described in [arXiv:2605.21997](https://arxiv.org/abs/2605.21997). Provides the agent-native abstractions: projected world state, reactive responders, typed edges with semantic logic, fork-and-diff, causal lineage.
-- [KurrentDB](https://github.com/kurrent-io/KurrentDB) (formerly EventStoreDB) — the event-native database. Provides the production substrate: native append-only streams, server-side views, persistent delivery, cluster consensus, and a decade of operational hardening.
-
-Neither is modified upstream. Kando is the layer that wires the architecture to the infrastructure.
+Kando is an opinionated production runtime. It combines an event-sourced reactive graph model with an event-native database substrate. Neither layer is modified — Kando is the layer that wires the architecture to the infrastructure.
 
 ---
 
@@ -17,11 +12,11 @@ Neither is modified upstream. Kando is the layer that wires the architecture to 
 
 | Kando term | What it is |
 |---|---|
-| **Ledger** | The append-only event log for a single agent run. One ledger per run. The source of truth. *(Backed by a KurrentDB stream.)* |
+| **Ledger** | The append-only event log for a single agent run. One ledger per run. The source of truth. *(Backed by an append-only event stream.)* |
 | **World** | The live projected state: all objects, relations, and their current data. Deterministically derived from the ledger. Never stored directly — always reconstructable. |
 | **Responder** | A function (plain, LLM-backed, or tool-calling) that subscribes to event patterns, reads the world, and emits new events back to the ledger. Responders do not call each other. |
 | **Edge logic** | Semantic behavior attached to a typed relation (`contradicts`, `depends_on`, `supports`, `blocks`). When the relation is created, its edge logic fires. Coordination without orchestration. |
-| **Snapshot** | A materialized checkpoint of the world at a ledger position. Optimization for fast startup — the ledger remains authoritative. *(Backed by a KurrentDB server-side view.)* |
+| **Snapshot** | A materialized checkpoint of the world at a ledger position. Optimization for fast startup — the ledger remains authoritative. *(Backed by a server-side projection view.)* |
 | **Branch** | A fork of a ledger at a specific position. The prefix before the branch point is shared (zero-copy, no re-execution). Each branch diverges independently. |
 | **Diff** | A structural comparison of two worlds (typically parent vs. branch) showing which objects, relations, and responder outputs diverged. |
 | **Cache** | Content-addressed store of LLM responses keyed by normalized request hash. On replay or branch, cached responses are served instead of making new API calls. |
@@ -100,8 +95,7 @@ kando status <run_id>
 
 ## References
 
-- [ActiveGraph](https://github.com/yoheinakajima/activegraph) — event-sourced reactive graph runtime
+- [ActiveGraph](https://github.com/yoheinakajima/activegraph) — event-sourced reactive graph runtime (agent abstractions)
 - ["The Log is the Agent"](https://arxiv.org/abs/2605.21997) — Nakajima, May 2026
-- [KurrentDB](https://github.com/kurrent-io/KurrentDB) — event-native database
 - [ESAA](https://arxiv.org/abs/2602.23193) — Event Sourcing for Autonomous Agents, Feb 2026
 - [Log-Centric Agent Architecture](https://blog.ucalyptus.me/p/log-centric-agent-architecture) — the architectural thesis this project implements

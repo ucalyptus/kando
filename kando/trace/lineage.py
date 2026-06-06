@@ -8,7 +8,7 @@ def build_lineage_index(events: list[KandoEvent]) -> dict[str, list[str]]:
 
 
 def trace(event_id: str, index: dict[str, list[str]]) -> list[str]:
-    """Return the full causal chain from event_id back to root, in order."""
+    """Return the full causal chain from event_id back to root, in BFS order."""
     chain: list[str] = []
     seen: set[str] = set()
     queue = [event_id]
@@ -20,3 +20,11 @@ def trace(event_id: str, index: dict[str, list[str]]) -> list[str]:
         chain.append(eid)
         queue.extend(index.get(eid, []))
     return chain
+
+
+def explain(event_id: str, events: list[KandoEvent]) -> list[KandoEvent]:
+    """Return the full causal chain as actual event objects, in BFS order from event_id to root."""
+    index = build_lineage_index(events)
+    event_map: dict[str, KandoEvent] = {e.id: e for e in events}
+    chain_ids = trace(event_id, index)
+    return [event_map[eid] for eid in chain_ids if eid in event_map]

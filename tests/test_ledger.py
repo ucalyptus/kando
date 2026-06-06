@@ -1,4 +1,4 @@
-"""Store parity: memory vs stream backends."""
+"""Store parity: memory backend — position tracking and read semantics."""
 import pytest
 from datetime import datetime, timezone
 from kando.ledger.memory import MemoryLedgerStore
@@ -37,3 +37,36 @@ def test_memory_read_from_position():
 def test_stream_name():
     store = MemoryLedgerStore("abc-123")
     assert store.stream_name() == "run:abc-123"
+
+
+def test_append_returns_correct_position_single_batch():
+    store = MemoryLedgerStore("pos-test")
+    pos = store.append([make_event(0), make_event(1), make_event(2)])
+    assert pos == 3
+
+
+def test_append_returns_correct_position_multiple_batches():
+    store = MemoryLedgerStore("pos-test")
+    pos1 = store.append([make_event(0)])
+    assert pos1 == 1
+    pos2 = store.append([make_event(1), make_event(2)])
+    assert pos2 == 3
+    pos3 = store.append([make_event(3)])
+    assert pos3 == 4
+
+
+def test_read_all_after_multiple_appends():
+    store = MemoryLedgerStore("multi-append")
+    store.append([make_event(0), make_event(1)])
+    store.append([make_event(2)])
+    store.append([make_event(3), make_event(4)])
+    result = list(store.read_all())
+    assert len(result) == 5
+    assert [e.id for e in result] == ["evt-0", "evt-1", "evt-2", "evt-3", "evt-4"]
+
+
+def test_append_empty_list_returns_current_position():
+    store = MemoryLedgerStore("empty-append")
+    store.append([make_event(0)])
+    pos = store.append([])
+    assert pos == 1
