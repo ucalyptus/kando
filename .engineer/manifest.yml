@@ -1,0 +1,127 @@
+version: "1"
+
+# ---------------------------------------------------------------------------
+# Paths
+# ---------------------------------------------------------------------------
+paths:
+  methodology_root: .
+  features: features/
+  build_cache: .build/
+
+# ---------------------------------------------------------------------------
+# Repository
+# ---------------------------------------------------------------------------
+repos:
+  - name: kando
+    url: https://github.com/ucalyptus/kando
+    default_branch: main
+
+# ---------------------------------------------------------------------------
+# Tracker
+# ---------------------------------------------------------------------------
+tracker:
+  type: linear
+  url: https://linear.app/ucalyptus/project/kando-f02dfdc278fb/overview
+  note: "Linear driver not yet implemented in DAE tooling — feature folders are the operational tracker."
+
+# ---------------------------------------------------------------------------
+# Team
+# ---------------------------------------------------------------------------
+team:
+  owner: ucalyptus
+  default_roles:
+    - owner: ucalyptus
+    - agent: claude-code
+
+# ---------------------------------------------------------------------------
+# Validation infrastructure
+# ---------------------------------------------------------------------------
+validation:
+  lsp:
+    servers:
+      - language: python
+        server: pyright
+        status: not-installed
+        install: "pip install pyright"
+  clis:
+    available:
+      - gh
+    suggested:
+      - name: docker
+        reason: docker-compose.yml present
+        install: "brew install --cask docker"
+      - name: make
+        reason: Makefile present
+        install: "xcode-select --install"
+      - name: pytest
+        reason: test suite present
+        install: "make dev-setup"
+  staging: ~
+  prod:
+    docs_url: https://kando.ucalyptus.me
+  feature_flags: ~
+
+# ---------------------------------------------------------------------------
+# Infra
+# ---------------------------------------------------------------------------
+infra:
+  - name: eventstore
+    start: "docker compose up -d eventstore"
+    stop: "docker compose down eventstore"
+    health:
+      tcp: 2113
+    optional: true
+    note: "Required only for durable ledger runs (EVENTSTORE_URL=http://localhost:2113)"
+
+# ---------------------------------------------------------------------------
+# Infra quirks
+# ---------------------------------------------------------------------------
+infra_quirks:
+  runtime_pins:
+    python: ">=3.12"
+
+# ---------------------------------------------------------------------------
+# Quality thresholds
+# ---------------------------------------------------------------------------
+quality:
+  mutation:
+    enabled: true
+    paths:
+      - kando/world/
+      - kando/ledger/
+      - kando/cache/
+      - kando/trace/
+      - kando/branch/
+    threshold: 0.80
+  coverage:
+    target: all responder logic and kit responders
+  tests_must_pass: true
+
+# ---------------------------------------------------------------------------
+# Autonomy
+# ---------------------------------------------------------------------------
+autonomy:
+  level: low-to-medium
+  agent_may:
+    - edit files
+    - run tests
+    - commit
+    - push on request
+    - start/stop local infra
+  agent_must_ask:
+    - destructive git ops
+    - external API calls with real cost beyond LLM executor
+    - publishing / releasing packages
+
+# ---------------------------------------------------------------------------
+# Agentic summary (used by prime-context)
+# ---------------------------------------------------------------------------
+agentic_summary: |
+  Kando is a Python 3.12 event-sourced agent runtime. The event log is the
+  agent — append-only ledger in, projected world out, reactive responders
+  between. Core modules: ledger, world, responders, cache, trace, branch.
+  Domain kits (research, diligence) live in kits/. LLM executor uses
+  OpenRouter (OPENROUTER_API_KEY) by default; .env at repo root is
+  auto-loaded. EventStoreDB is optional (EVENTSTORE_URL). Docs at
+  kando.ucalyptus.me via CF Pages, auto-deployed on push to main.
+  DAE tracker: Linear (human-facing); feature folders are canonical DAE state.

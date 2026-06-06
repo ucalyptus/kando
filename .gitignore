@@ -14,3 +14,4 @@ site/
 .kando_snapshots/
 _internal/
 .claude/
+.build/
