@@ -1,6 +1,7 @@
 services:
   eventstore:
     image: eventstore/eventstore:lts
+    platform: linux/amd64
     ports:
       - "2113:2113"   # HTTP API + UI
       - "1113:1113"   # TCP (legacy)
@@ -8,7 +9,7 @@ services:
       - EVENTSTORE_CLUSTER_SIZE=1
       - EVENTSTORE_RUN_PROJECTIONS=All
       - EVENTSTORE_START_STANDARD_PROJECTIONS=true
-      - EVENTSTORE_DEV=true
+      - EVENTSTORE_INSECURE=true
     volumes:
       - eventstore-data:/var/lib/eventstore
 
