@@ -29,6 +29,10 @@ dev = [
     "pytest-bdd>=8",
     "esdbclient>=1.0",
 ]
+docs = [
+    "mkdocs-material>=9.0",
+    "mkdocstrings[python]>=0.24",
+]
 
 [project.scripts]
 kando = "kando.cli.main:main"

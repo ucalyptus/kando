@@ -1,0 +1,99 @@
+site_name: Kando
+site_description: Production runtime for long-running agents — the event log is the agent
+site_url: https://ucalyptus.github.io/kando
+repo_url: https://github.com/ucalyptus/kando
+repo_name: ucalyptus/kando
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  logo: assets/logo.jpg
+  favicon: assets/logo.jpg
+  palette:
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+  features:
+    - navigation.instant
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - navigation.footer
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.code.annotate
+    - toc.follow
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            docstring_style: google
+            show_source: true
+            show_root_heading: true
+            show_symbol_type_heading: true
+            merge_init_into_class: true
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.tabbed:
+      alternate_style: true
+  - tables
+  - footnotes
+  - attr_list
+  - md_in_html
+  - toc:
+      permalink: true
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/ucalyptus/kando
+
+nav:
+  - Home: index.md
+  - Concepts: concepts.md
+  - Quickstart: quickstart.md
+  - Architecture: architecture.md
+  - CLI Reference: cli.md
+  - MCP Server: mcp.md
+  - Kits:
+      - Overview: kits/index.md
+      - Diligence Kit: kits/diligence.md
+      - Research Kit: kits/research.md
+      - Writing a Kit: kits/authoring.md
+  - API Reference:
+      - Overview: api/index.md
+      - Runtime: api/runtime.md
+      - Ledger: api/ledger.md
+      - World & Projection: api/world.md
+      - Budget: api/budget.md
+      - Delivery Bus: api/delivery.md
+      - LLM Cache: api/cache.md
+      - Trace & Lineage: api/trace.md
+      - Branch & Diff: api/branch.md
+  - Contributing: contributing.md

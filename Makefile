@@ -1,4 +1,4 @@
-.PHONY: setup dev-setup start status trace test eventstore docker-status docker-trace docker-build run run-research run-durable
+.PHONY: setup dev-setup start status trace test eventstore docker-status docker-trace docker-build run run-research run-durable docs docs-serve docs-setup
 
 VENV    := .venv
 PYTHON  := python3
@@ -52,3 +52,13 @@ docker-status:
 
 docker-trace:
 	docker compose run --rm kando python -m kando.cli.main trace object.created-2
+
+# Documentation (MkDocs Material)
+docs-setup:
+	$(PIP) install --quiet mkdocs-material "mkdocstrings[python]"
+
+docs: docs-setup
+	$(VENV)/bin/mkdocs build
+
+docs-serve: docs-setup
+	$(VENV)/bin/mkdocs serve
