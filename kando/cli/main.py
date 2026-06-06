@@ -140,11 +140,17 @@ def cmd_replay(args) -> None:
     from kando.ledger.stream import EventStreamLedgerStore
     ledger = EventStreamLedgerStore(args.run_id)
     if args.strict:
-        print("Error: strict replay not yet implemented.", file=sys.stderr)
-        sys.exit(1)
-    world = reproject(ledger)
+        responders = []
+        if args.kit:
+            kit_mod = _load_kit(args.kit)
+            responders = kit_mod.create_kit()
+        runtime = Runtime(ledger=ledger, responders=responders)
+        world = runtime.replay(strict=True)
+    else:
+        world = reproject(ledger)
     all_events = list(ledger.read_all())
-    print(f"Replayed: {args.run_id}")
+    mode = "strict" if args.strict else "permissive"
+    print(f"Replayed ({mode}): {args.run_id}")
     _print_world(world, all_events)
 
 
@@ -257,6 +263,8 @@ def main() -> None:
     p_replay.add_argument("run_id", help="Run ID to replay")
     p_replay.add_argument("--strict", action="store_true",
                           help="Re-fire responders instead of reprojecting")
+    p_replay.add_argument("--kit", default=None,
+                          help="Kit path to load responders for strict replay (e.g. kits/diligence)")
     p_replay.set_defaults(fn=cmd_replay)
 
     p_fork = sub.add_parser("fork", help="Fork a run at a specific ledger position")

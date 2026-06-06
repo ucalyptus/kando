@@ -25,6 +25,7 @@ class World:
     def __init__(self) -> None:
         self.objects: dict[str, WorldObject] = {}
         self.relations: dict[str, Relation] = {}
+        self.context: dict[str, Any] = {}   # runtime-level shared state (cache, config, etc.)
 
     def get_object(self, obj_id: str) -> WorldObject | None:
         return self.objects.get(obj_id)

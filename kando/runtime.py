@@ -1,5 +1,6 @@
 from __future__ import annotations
 from collections import deque
+from kando.cache.llm import LLMCache
 from kando.ledger.interface import LedgerStore
 from kando.world.graph import World
 from kando.world.projection import project, apply, reproject
@@ -20,9 +21,11 @@ class Runtime:
         ledger: LedgerStore,
         responders: list[Responder],
         budget: Budget | None = None,
+        cache: LLMCache | None = None,
     ) -> None:
         self._ledger = ledger
         self._responders = responders
+        self._cache = cache or LLMCache()
         self._budget_enforcer = BudgetEnforcer(
             budget or Budget(),
             run_id=ledger.stream_name(),
@@ -30,7 +33,9 @@ class Runtime:
 
     def load(self) -> World:
         """Reconstruct the current world from the ledger."""
-        return reproject(self._ledger)
+        world = reproject(self._ledger)
+        world.context["cache"] = self._cache
+        return world
 
     def run(self, seed_events: list[KandoEvent]) -> World:
         """Main event loop: process seed events, fire responders, exhaust the queue."""

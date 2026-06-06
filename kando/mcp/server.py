@@ -197,7 +197,10 @@ async def call_tool(name: str, arguments: dict) -> list[types.TextContent]:
 
 def _dispatch(name: str, args: dict) -> dict:
     if name == "start_run":
-        _, result = _run_kit(args["kit"], args["goal"])
+        try:
+            _, result = _run_kit(args["kit"], args["goal"])
+        except (ValueError, ModuleNotFoundError) as exc:
+            return {"error": str(exc)}
         return result
 
     if name == "query_world":
