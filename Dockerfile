@@ -8,6 +8,7 @@ WORKDIR /app
 COPY pyproject.toml README.md ./
 COPY kando ./kando
 COPY kits ./kits
-COPY mcp ./mcp
+
+RUN pip install --no-cache-dir -e ".[stream,mcp]"
 
 CMD ["python", "-m", "kando.cli.main", "status", "demo"]
