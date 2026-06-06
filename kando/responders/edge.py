@@ -1,4 +1,5 @@
 from __future__ import annotations
+import warnings
 from typing import Callable, Iterator
 from kando.schema.events import KandoEvent, RELATION_CREATED
 from kando.world.graph import World
@@ -12,6 +13,12 @@ _registry: dict[str, EdgeLogicFn] = {}
 def edge_logic(relation_type: str):
     """Decorator: fires when a relation of `relation_type` is created."""
     def decorator(fn: EdgeLogicFn) -> EdgeLogicFn:
+        if relation_type in _registry:
+            warnings.warn(
+                f"edge_logic: duplicate registration for relation_type '{relation_type}'; "
+                f"overwriting existing handler.",
+                stacklevel=2,
+            )
         _registry[relation_type] = fn
         return fn
     return decorator

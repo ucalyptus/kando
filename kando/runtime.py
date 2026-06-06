@@ -50,9 +50,6 @@ class Runtime:
             if self._handle_budget(event, world):
                 return world
 
-            if event.type == BUDGET_EXHAUSTED:
-                return world
-
             self._dispatch(event, world, queue)
 
         return world
@@ -62,6 +59,7 @@ class Runtime:
         exhaust_event = self._check_budget(event, world)
         if exhaust_event is not None:
             self._ledger.append([exhaust_event])
+            apply(world, exhaust_event)
             return True
         return False
 

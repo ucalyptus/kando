@@ -183,7 +183,7 @@ async def list_tools() -> list[types.Tool]:
 @server.call_tool()
 async def call_tool(name: str, arguments: dict) -> list[types.TextContent]:
     try:
-        result = await asyncio.get_event_loop().run_in_executor(
+        result = await asyncio.get_running_loop().run_in_executor(
             None, _dispatch, name, arguments
         )
         return [types.TextContent(type="text", text=json.dumps(result, indent=2))]

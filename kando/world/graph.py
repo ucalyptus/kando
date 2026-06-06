@@ -30,7 +30,7 @@ class World:
     def get_object(self, obj_id: str) -> WorldObject | None:
         return self.objects.get(obj_id)
 
-    def get_relations(self, obj_id: str, relation_type: str = None) -> list:
+    def get_relations(self, obj_id: str, relation_type: str | None = None) -> list[Relation]:
         rels = self._relations_for_object(obj_id)
         if relation_type:
             rels = [r for r in rels if r.type == relation_type]

@@ -55,8 +55,11 @@ class DeliveryBus:
         reached: list[str] = []
         for sub in self._subscriptions:
             if not sub.pattern or event.type in sub.pattern:
-                sub.callback(event)
-                reached.append(sub.name)
+                try:
+                    sub.callback(event)
+                    reached.append(sub.name)
+                except Exception:
+                    pass  # isolate subscriber errors; do not crash the runtime loop
         return reached
 
     def __len__(self) -> int:

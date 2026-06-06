@@ -1,6 +1,7 @@
 """Diligence kit: structured due-diligence on a company or entity."""
 from __future__ import annotations
 
+import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Iterator
@@ -73,19 +74,6 @@ class Report:
 
 
 # ---------------------------------------------------------------------------
-# Internal counter for stable IDs within a run
-# ---------------------------------------------------------------------------
-
-_COUNTER = 0
-
-
-def _next_id(prefix: str) -> str:
-    global _COUNTER
-    _COUNTER += 1
-    return f"{prefix}-{_COUNTER}"
-
-
-# ---------------------------------------------------------------------------
 # Responders
 # ---------------------------------------------------------------------------
 
@@ -96,7 +84,7 @@ def _on_company_created(event: KandoEvent, world: World) -> Iterator[KandoEvent]
 
     company_id = event.data["id"]
     company_name = event.data.get("data", {}).get("name", company_id)
-    claim_id = _next_id("claim")
+    claim_id = f"claim-{uuid.uuid4().hex[:8]}"
 
     yield make_event(
         type=OBJECT_CREATED,
@@ -109,9 +97,9 @@ def _on_company_created(event: KandoEvent, world: World) -> Iterator[KandoEvent]
             "data": {
                 "text": f"Pending research for {company_name}",
                 "company_id": company_id,
+                "status": "pending",
             },
         },
-        run_id_counter=_COUNTER,
     )
 
 
@@ -125,19 +113,17 @@ def _on_evidence_created(event: KandoEvent, world: World) -> Iterator[KandoEvent
     if not claim_id or claim_id not in world.objects:
         return
 
-    rel_id = _next_id("rel-sourced")
     yield make_event(
         type=RELATION_CREATED,
         source=event.source,
         actor="diligence.on_evidence_created",
         cause=[event.id],
         data={
-            "id": rel_id,
+            "id": f"rel-sourced-{uuid.uuid4().hex[:8]}",
             "type": SOURCED_FROM,
             "source_id": evidence_id,
             "target_id": claim_id,
         },
-        run_id_counter=_COUNTER,
     )
 
 
@@ -149,19 +135,17 @@ def _on_claim_with_evidence(event: KandoEvent, world: World) -> Iterator[KandoEv
     claim_id = event.data["id"]
     for obj in world.objects.values():
         if obj.type == EVIDENCE and obj.data.get("claim_id") == claim_id:
-            rel_id = _next_id("rel-supports")
             yield make_event(
                 type=RELATION_CREATED,
                 source=event.source,
                 actor="diligence.claim_evidence_linker",
                 cause=[event.id],
                 data={
-                    "id": rel_id,
+                    "id": f"rel-supports-{uuid.uuid4().hex[:8]}",
                     "type": SUPPORTS,
                     "source_id": obj.id,
                     "target_id": claim_id,
                 },
-                run_id_counter=_COUNTER,
             )
 
 
@@ -174,19 +158,17 @@ def _on_contradiction_created(event: KandoEvent, world: World) -> Iterator[Kando
     claim_a = obj_data.get("claim_a_id")
     claim_b = obj_data.get("claim_b_id")
     if claim_a and claim_b and claim_a in world.objects and claim_b in world.objects:
-        rel_id = _next_id("rel-contradicts")
         yield make_event(
             type=RELATION_CREATED,
             source=event.source,
             actor="diligence.on_contradiction_created",
             cause=[event.id],
             data={
-                "id": rel_id,
+                "id": f"rel-contradicts-{uuid.uuid4().hex[:8]}",
                 "type": CONTRADICTS,
                 "source_id": claim_a,
                 "target_id": claim_b,
             },
-            run_id_counter=_COUNTER,
         )
 
 
@@ -200,19 +182,17 @@ def _on_report_requested(event: KandoEvent, world: World) -> Iterator[KandoEvent
     if not company_id or company_id not in world.objects:
         return
 
-    rel_id = _next_id("rel-depends")
     yield make_event(
         type=RELATION_CREATED,
         source=event.source,
         actor="diligence.on_report_requested",
         cause=[event.id],
         data={
-            "id": rel_id,
+            "id": f"rel-depends-{uuid.uuid4().hex[:8]}",
             "type": DEPENDS_ON,
             "source_id": report_id,
             "target_id": company_id,
         },
-        run_id_counter=_COUNTER,
     )
 
 
@@ -220,11 +200,9 @@ def _on_pending_claim_created(event: KandoEvent, world: World) -> Iterator[Kando
     """When a pending-research Claim is created, emit an LLM_REQUEST to fill it in."""
     if event.data.get("type") != CLAIM:
         return
-    claim_text = event.data.get("data", {}).get("text", "")
-    if not claim_text.startswith("Pending research"):
+    if event.data.get("data", {}).get("status") != "pending":
         return
 
-    global _COUNTER
     claim_id = event.data["id"]
     company_id = event.data.get("data", {}).get("company_id", "")
     company_name = (
@@ -233,7 +211,6 @@ def _on_pending_claim_created(event: KandoEvent, world: World) -> Iterator[Kando
         else company_id
     )
 
-    _COUNTER += 1
     yield make_event(
         type=LLM_REQUEST,
         source=event.source,
@@ -251,7 +228,6 @@ def _on_pending_claim_created(event: KandoEvent, world: World) -> Iterator[Kando
             "max_tokens": 1024,
             "cause_object_id": claim_id,
         },
-        run_id_counter=_COUNTER,
     )
 
 
@@ -263,8 +239,6 @@ def _on_llm_response(event: KandoEvent, world: World) -> Iterator[KandoEvent]:
     if world.objects[claim_id].type != CLAIM:
         return
 
-    global _COUNTER
-    _COUNTER += 1
     yield make_event(
         type=OBJECT_PATCHED,
         source=event.source,
@@ -274,7 +248,6 @@ def _on_llm_response(event: KandoEvent, world: World) -> Iterator[KandoEvent]:
             "id": claim_id,
             "patch": {"text": event.data.get("text", ""), "status": "complete"},
         },
-        run_id_counter=_COUNTER,
     )
 
 

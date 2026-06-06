@@ -224,9 +224,9 @@ def cmd_trace(args) -> None:
     else:
         # Demo mode
         store = MemoryLedgerStore("demo")
-        e0 = make_event(OBJECT_CREATED, "run:demo", "cli", [], {"id": "root", "type": "goal", "data": {}}, 0)
-        e1 = make_event(OBJECT_CREATED, "run:demo", "cli", [e0.id], {"id": "step1", "type": "task", "data": {}}, 1)
-        e2 = make_event(OBJECT_CREATED, "run:demo", "cli", [e1.id], {"id": "step2", "type": "task", "data": {}}, 2)
+        e0 = make_event(OBJECT_CREATED, "run:demo", "cli", [], {"id": "root", "type": "goal", "data": {}})
+        e1 = make_event(OBJECT_CREATED, "run:demo", "cli", [e0.id], {"id": "step1", "type": "task", "data": {}})
+        e2 = make_event(OBJECT_CREATED, "run:demo", "cli", [e1.id], {"id": "step2", "type": "task", "data": {}})
         store.append([e0, e1, e2])
 
     all_events = list(store.read_all())

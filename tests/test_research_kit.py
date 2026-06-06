@@ -78,15 +78,16 @@ def test_synthesizes_relation_links_to_goal():
     assert len(synth_rels) == 1
 
 
-def test_create_kit_returns_five_responders():
+def test_create_kit_returns_six_responders():
     responders = create_kit()
-    assert len(responders) == 5
+    assert len(responders) == 6
     names = {r.name for r in responders}
     assert "research.on_goal_created" in names
     assert "research.on_question_created" in names
     assert "research.on_finding_created" in names
     assert "research.on_pending_finding_created" in names
     assert "research.on_llm_response" in names
+    assert "research.on_finding_patched" in names
 
 
 def test_pending_finding_emits_llm_request():

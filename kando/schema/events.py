@@ -1,4 +1,5 @@
 from __future__ import annotations
+import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any
@@ -38,11 +39,10 @@ def make_event(
     actor: str,
     cause: list[str],
     data: dict[str, Any],
-    run_id_counter: int,
 ) -> KandoEvent:
-    """Factory that generates a KandoEvent with a deterministic ID."""
+    """Factory that generates a KandoEvent with a unique UUID-based ID."""
     return KandoEvent(
-        id=f"{type}-{run_id_counter}",
+        id=f"{type}-{uuid.uuid4().hex[:8]}",
         type=type,
         source=source,
         actor=actor,

@@ -44,7 +44,7 @@ python_files = ["test_*.py", "*_steps.py"]
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["kando*"]
+include = ["kando*", "kits*"]
 
 [tool.mutmut]
 paths_to_mutate = [

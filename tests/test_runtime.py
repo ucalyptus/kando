@@ -129,13 +129,20 @@ def test_responder_exception_propagates():
 
 
 # ---------------------------------------------------------------------------
-# Test: make_event factory produces deterministic IDs
+# Test: make_event factory produces UUID-based IDs
 # ---------------------------------------------------------------------------
 
-def test_make_event_deterministic_id():
-    e = make_event(OBJECT_CREATED, "run:x", "actor", [], {"id": "o", "type": "t", "data": {}}, 7)
-    assert e.id == f"{OBJECT_CREATED}-7"
+def test_make_event_uuid_id():
+    e = make_event(OBJECT_CREATED, "run:x", "actor", [], {"id": "o", "type": "t", "data": {}})
+    assert e.id.startswith(f"{OBJECT_CREATED}-")
+    assert len(e.id) == len(OBJECT_CREATED) + 1 + 8  # "type-" + 8 hex chars
     assert e.type == OBJECT_CREATED
+
+
+def test_make_event_unique_ids():
+    e1 = make_event(OBJECT_CREATED, "run:x", "actor", [], {"id": "o", "type": "t", "data": {}})
+    e2 = make_event(OBJECT_CREATED, "run:x", "actor", [], {"id": "o", "type": "t", "data": {}})
+    assert e1.id != e2.id
 
 
 # ---------------------------------------------------------------------------

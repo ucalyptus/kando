@@ -72,19 +72,6 @@ class Synthesis:
 
 
 # ---------------------------------------------------------------------------
-# Internal counter
-# ---------------------------------------------------------------------------
-
-_COUNTER = 0
-
-
-def _next_id(prefix: str) -> str:
-    global _COUNTER
-    _COUNTER += 1
-    return f"{prefix}-{_COUNTER}"
-
-
-# ---------------------------------------------------------------------------
 # Responders
 # ---------------------------------------------------------------------------
 
@@ -103,7 +90,8 @@ def _on_goal_created(event: KandoEvent, world: World) -> Iterator[KandoEvent]:
     ]
 
     for angle in default_angles:
-        q_id = _next_id("question")
+        import uuid
+        q_id = f"question-{uuid.uuid4().hex[:8]}"
         q_event = make_event(
             type=OBJECT_CREATED,
             source=event.source,
@@ -114,23 +102,20 @@ def _on_goal_created(event: KandoEvent, world: World) -> Iterator[KandoEvent]:
                 "type": QUESTION,
                 "data": {"text": angle, "goal_id": goal_id},
             },
-            run_id_counter=_COUNTER,
         )
         yield q_event
 
-        rel_id = _next_id("rel-decomposes")
         yield make_event(
             type=RELATION_CREATED,
             source=event.source,
             actor="research.on_goal_created",
             cause=[q_event.id],
             data={
-                "id": rel_id,
+                "id": f"rel-decomposes-{uuid.uuid4().hex[:8]}",
                 "type": DECOMPOSES_INTO,
                 "source_id": goal_id,
                 "target_id": q_id,
             },
-            run_id_counter=_COUNTER,
         )
 
 
@@ -139,9 +124,10 @@ def _on_question_created(event: KandoEvent, world: World) -> Iterator[KandoEvent
     if event.data.get("type") != QUESTION:
         return
 
+    import uuid
     q_id = event.data["id"]
     q_text = event.data.get("data", {}).get("text", q_id)
-    finding_id = _next_id("finding")
+    finding_id = f"finding-{uuid.uuid4().hex[:8]}"
 
     f_event = make_event(
         type=OBJECT_CREATED,
@@ -157,23 +143,20 @@ def _on_question_created(event: KandoEvent, world: World) -> Iterator[KandoEvent
                 "status": "pending",
             },
         },
-        run_id_counter=_COUNTER,
     )
     yield f_event
 
-    rel_id = _next_id("rel-answers")
     yield make_event(
         type=RELATION_CREATED,
         source=event.source,
         actor="research.on_question_created",
         cause=[f_event.id],
         data={
-            "id": rel_id,
+            "id": f"rel-answers-{uuid.uuid4().hex[:8]}",
             "type": ANSWERS,
             "source_id": finding_id,
             "target_id": q_id,
         },
-        run_id_counter=_COUNTER,
     )
 
 
@@ -218,7 +201,8 @@ def _on_finding_created(event: KandoEvent, world: World) -> Iterator[KandoEvent]
     if existing_syntheses or question_ids != covered_q_ids:
         return
 
-    synth_id = _next_id("synthesis")
+    import uuid
+    synth_id = f"synthesis-{uuid.uuid4().hex[:8]}"
     goal_text = world.objects[goal_id].data.get("text", goal_id)
     s_event = make_event(
         type=OBJECT_CREATED,
@@ -232,25 +216,23 @@ def _on_finding_created(event: KandoEvent, world: World) -> Iterator[KandoEvent]
                 "summary": f"[Pending synthesis for: {goal_text}]",
                 "goal_id": goal_id,
                 "finding_count": len(covered_q_ids),
+                "status": "pending",
             },
         },
-        run_id_counter=_COUNTER,
     )
     yield s_event
 
-    rel_id = _next_id("rel-synthesizes")
     yield make_event(
         type=RELATION_CREATED,
         source=event.source,
         actor="research.on_finding_created",
         cause=[s_event.id],
         data={
-            "id": rel_id,
+            "id": f"rel-synthesizes-{uuid.uuid4().hex[:8]}",
             "type": SYNTHESIZES,
             "source_id": synth_id,
             "target_id": goal_id,
         },
-        run_id_counter=_COUNTER,
     )
 
 
@@ -261,12 +243,10 @@ def _on_pending_finding_created(event: KandoEvent, world: World) -> Iterator[Kan
     if event.data.get("data", {}).get("status") != "pending":
         return
 
-    global _COUNTER
     finding_id = event.data["id"]
     q_id = event.data.get("data", {}).get("question_id", "")
     q_text = world.objects[q_id].data.get("text", "") if q_id in world.objects else ""
 
-    _COUNTER += 1
     yield make_event(
         type=LLM_REQUEST,
         source=event.source,
@@ -278,7 +258,6 @@ def _on_pending_finding_created(event: KandoEvent, world: World) -> Iterator[Kan
             "max_tokens": 1024,
             "cause_object_id": finding_id,
         },
-        run_id_counter=_COUNTER,
     )
 
 
@@ -290,8 +269,6 @@ def _on_llm_response(event: KandoEvent, world: World) -> Iterator[KandoEvent]:
     if world.objects[finding_id].type != FINDING:
         return
 
-    global _COUNTER
-    _COUNTER += 1
     yield make_event(
         type=OBJECT_PATCHED,
         source=event.source,
@@ -301,7 +278,82 @@ def _on_llm_response(event: KandoEvent, world: World) -> Iterator[KandoEvent]:
             "id": finding_id,
             "patch": {"text": event.data.get("text", ""), "status": "complete"},
         },
-        run_id_counter=_COUNTER,
+    )
+
+
+def _on_finding_patched(event: KandoEvent, world: World) -> Iterator[KandoEvent]:
+    """When a Finding is patched to complete, update synthesis if all findings are done."""
+    patch = event.data.get("patch", {})
+    if patch.get("status") != "complete":
+        return
+
+    finding_id = event.data.get("id", "")
+    if not finding_id or finding_id not in world.objects:
+        return
+
+    finding_obj = world.objects[finding_id]
+    if finding_obj.type != FINDING:
+        return
+
+    q_id = finding_obj.data.get("question_id")
+    if not q_id or q_id not in world.objects:
+        return
+
+    goal_id = world.objects[q_id].data.get("goal_id")
+    if not goal_id or goal_id not in world.objects:
+        return
+
+    # Find the synthesis for this goal
+    synthesis_objs = [
+        obj for obj in world.objects.values()
+        if obj.type == SYNTHESIS and obj.data.get("goal_id") == goal_id
+    ]
+    if not synthesis_objs:
+        return
+
+    synth_obj = synthesis_objs[0]
+
+    # Check if all findings for this goal are now complete (after applying the current patch)
+    goal_questions = [
+        obj for obj in world.objects.values()
+        if obj.type == QUESTION and obj.data.get("goal_id") == goal_id
+    ]
+    question_ids = {q.id for q in goal_questions}
+
+    all_findings = [
+        obj for obj in world.objects.values()
+        if obj.type == FINDING and obj.data.get("question_id") in question_ids
+    ]
+
+    # The current finding is being patched to complete right now; check all others
+    all_complete = all(
+        (f.data.get("status") == "complete" or f.id == finding_id)
+        for f in all_findings
+    )
+    if not all_complete:
+        return
+
+    # Collect texts from all complete findings (including the one being patched)
+    texts = []
+    for f in all_findings:
+        if f.id == finding_id:
+            text = patch.get("text", f.data.get("text", ""))
+        else:
+            text = f.data.get("text", "")
+        if text:
+            texts.append(text)
+
+    summary = "\n\n".join(texts)
+
+    yield make_event(
+        type=OBJECT_PATCHED,
+        source=event.source,
+        actor="research.on_finding_patched",
+        cause=[event.id],
+        data={
+            "id": synth_obj.id,
+            "patch": {"summary": summary, "status": "complete"},
+        },
     )
 
 
@@ -352,5 +404,10 @@ def create_kit() -> list[Responder]:
             name="research.on_llm_response",
             pattern=frozenset({LLM_RESPONSE}),
             fn=_on_llm_response,
+        ),
+        Responder(
+            name="research.on_finding_patched",
+            pattern=frozenset({OBJECT_PATCHED}),
+            fn=_on_finding_patched,
         ),
     ]

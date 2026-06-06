@@ -1,4 +1,5 @@
 from __future__ import annotations
+import copy
 from typing import TYPE_CHECKING
 from kando.schema import events as ev
 from kando.schema.events import KandoEvent
@@ -22,12 +23,14 @@ def apply(world: World, event: KandoEvent) -> None:
         world.objects[event.data["id"]] = WorldObject(
             id=event.data["id"],
             type=event.data["type"],
-            data=dict(event.data.get("data", {})),
+            data=copy.deepcopy(event.data.get("data", {})),
         )
     elif event.type == ev.OBJECT_PATCHED:
         obj = world.objects.get(event.data["id"])
         if obj:
-            obj.data.update(event.data.get("patch", {}))
+            obj.data.update(copy.deepcopy(event.data.get("patch", {})))
+    elif event.type == ev.BUDGET_EXHAUSTED:
+        world.context["budget_exhausted"] = True
     elif event.type == ev.RELATION_CREATED:
         world.relations[event.data["id"]] = Relation(
             id=event.data["id"],
