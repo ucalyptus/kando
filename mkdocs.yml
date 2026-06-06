@@ -1,6 +1,6 @@
 site_name: Kando
 site_description: Production runtime for long-running agents — the event log is the agent
-site_url: https://ucalyptus.github.io/kando
+site_url: https://kando.ucalyptus.me
 repo_url: https://github.com/ucalyptus/kando
 repo_name: ucalyptus/kando
 edit_uri: edit/main/docs/
