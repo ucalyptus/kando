@@ -150,18 +150,39 @@ make docker-status
 make docker-trace
 ```
 
-### Command status
+### Full command reference
 
-The current CLI has working in-memory demo implementations for `status`
-and `trace`. These commands are intentionally not wired to durable storage
-yet and currently raise `NotImplementedError`:
+All commands are implemented. Without `EVENTSTORE_URL`, runs use an in-memory ledger (transient).
 
 ```bash
+# In-memory run (no Docker needed)
 kando run kits/diligence --goal "Evaluate Acme Corp"
+kando run kits/research  --goal "Understand AI safety"
+
+# Demo mode for status/trace (no EVENTSTORE_URL needed)
+kando status demo
+kando trace object.created-2
+
+# Durable runs (requires EVENTSTORE_URL + EventStoreDB)
+export EVENTSTORE_URL=http://localhost:2113
+kando run kits/diligence --goal "Evaluate Acme Corp"  # prints run_id
+kando status <run_id>
 kando replay <run_id>
-kando fork <run_id> --at 250
+kando replay <run_id> --strict --kit kits/diligence   # re-fires responders
+kando fork <run_id> --at 2
 kando diff <run_a> <run_b>
+kando trace <event_id> --run <run_id>
 ```
+
+### MCP server
+
+Expose Kando as a tool server for any MCP-compatible host (Claude, Cursor, etc.):
+
+```bash
+kando-mcp  # starts stdio MCP server
+```
+
+Tools: `start_run`, `query_world`, `fork_run`, `diff_branches`, `explain_trace`.
 
 ---
 
