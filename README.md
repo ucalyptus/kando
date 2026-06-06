@@ -1,5 +1,9 @@
 # Kando
 
+<p align="center">
+  <img src="logo.jpg" alt="Kando logo" width="160" />
+</p>
+
 **কাণ্ড** — Bengali for *event*, *incident*, *episode*.
 
 A production runtime for long-running agents where the event log is the agent, not a debugging artifact. Append-only log in, projected world out, reactive responders in between.
