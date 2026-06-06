@@ -85,14 +85,82 @@ Kando is an opinionated production runtime. It combines an event-sourced reactiv
 
 ## Quickstart
 
+From a fresh clone:
+
 ```bash
-pip install kando
+git clone https://github.com/ucalyptus/kando.git
+cd kando
+make start
+```
+
+`make start` creates `.venv` and runs the two currently wired CLI smoke
+checks directly from this checkout:
+
+```bash
+.venv/bin/python -m kando.cli.main status demo
+.venv/bin/python -m kando.cli.main trace object.created-2
+```
+
+Expected output includes a demo run with three events and a causal chain
+from `object.created-2` back to `object.created-0`.
+
+### Local development
+
+```bash
+make setup
+.venv/bin/python -m kando.cli.main --help
+.venv/bin/python -m kando.cli.main status demo
+.venv/bin/python -m kando.cli.main trace object.created-2
+```
+
+Install the package when you specifically want the `kando` console script:
+
+```bash
+.venv/bin/pip install -e .
+.venv/bin/kando status demo
+```
+
+Run tests after installing the dev extra:
+
+```bash
+.venv/bin/pip install -e ".[dev]"
+make test
+```
+
+### Docker / EventStoreDB
+
+Start the event substrate:
+
+```bash
+docker compose up -d eventstore
+```
+
+Run the Kando CLI in a container:
+
+```bash
+docker compose run --rm kando python -m kando.cli.main status demo
+docker compose run --rm kando python -m kando.cli.main trace object.created-2
+```
+
+Or use the Make targets:
+
+```bash
+make eventstore
+make docker-status
+make docker-trace
+```
+
+### Command status
+
+The current CLI has working in-memory demo implementations for `status`
+and `trace`. These commands are intentionally not wired to durable storage
+yet and currently raise `NotImplementedError`:
+
+```bash
 kando run kits/diligence --goal "Evaluate Acme Corp"
 kando replay <run_id>
 kando fork <run_id> --at 250
 kando diff <run_a> <run_b>
-kando trace <event_id>
-kando status <run_id>
 ```
 
 ---
