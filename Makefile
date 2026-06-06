@@ -1,4 +1,4 @@
-.PHONY: setup dev-setup start status trace test eventstore docker-status docker-trace docker-build run
+.PHONY: setup dev-setup start status trace test eventstore docker-status docker-trace docker-build run run-research run-durable
 
 VENV    := .venv
 PYTHON  := python3
@@ -32,8 +32,16 @@ test: dev-setup
 eventstore:
 	docker compose up -d eventstore
 
-# Run a kit against EventStoreDB
-run: setup eventstore
+# Run diligence kit (in-memory if EVENTSTORE_URL unset; GOAL required)
+run: setup
+	$(KANDO) run kits/diligence --goal "$(GOAL)"
+
+# Run research kit (in-memory if EVENTSTORE_URL unset; GOAL required)
+run-research: setup
+	$(KANDO) run kits/research --goal "$(GOAL)"
+
+# Run against EventStoreDB
+run-durable: setup eventstore
 	EVENTSTORE_URL=http://localhost:2113 $(KANDO) run kits/diligence --goal "$(GOAL)"
 
 docker-build:
