@@ -8,6 +8,21 @@ import sys
 import uuid
 from datetime import datetime, timezone
 
+
+def _load_dotenv() -> None:
+    env_path = os.path.join(os.path.dirname(__file__), "..", "..", ".env")
+    try:
+        with open(os.path.normpath(env_path)) as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith("#") and "=" in line:
+                    k, _, v = line.partition("=")
+                    os.environ.setdefault(k.strip(), v.strip())
+    except FileNotFoundError:
+        pass
+
+_load_dotenv()
+
 from kando.ledger.interface import LedgerStore
 from kando.ledger.memory import MemoryLedgerStore
 from kando.runtime import Runtime
