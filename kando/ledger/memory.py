@@ -16,6 +16,8 @@ class MemoryLedgerStore(LedgerStore):
         return len(self._events)
 
     def read(self, from_position: int = 0) -> Iterator[KandoEvent]:
+        if from_position is None:
+            raise TypeError("from_position must be an int, got None")
         yield from self._events[from_position:]
 
     def stream_name(self) -> str:

@@ -23,6 +23,11 @@ class WorldDiff:
 
     def summary(self) -> str:
         """Human-readable one-line summary of the diff."""
+        parts = self._object_parts() + self._relation_parts()
+        return ", ".join(parts) if parts else "no changes"
+
+    def _object_parts(self) -> list:
+        """Build the objects portion of the summary."""
         parts = []
         if self.added_objects:
             parts.append(f"+{len(self.added_objects)} objects")
@@ -30,11 +35,16 @@ class WorldDiff:
             parts.append(f"-{len(self.removed_objects)} objects")
         if self.patched_objects:
             parts.append(f"~{len(self.patched_objects)} objects patched")
+        return parts
+
+    def _relation_parts(self) -> list:
+        """Build the relations portion of the summary."""
+        parts = []
         if self.added_relations:
             parts.append(f"+{len(self.added_relations)} relations")
         if self.removed_relations:
             parts.append(f"-{len(self.removed_relations)} relations")
-        return ", ".join(parts) if parts else "no changes"
+        return parts
 
 
 def diff(world_a: World, world_b: World) -> WorldDiff:

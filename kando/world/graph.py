@@ -29,8 +29,15 @@ class World:
     def get_object(self, obj_id: str) -> WorldObject | None:
         return self.objects.get(obj_id)
 
-    def get_relations(self, obj_id: str, relation_type: str | None = None) -> list[Relation]:
-        rels = [r for r in self.relations.values() if r.source_id == obj_id or r.target_id == obj_id]
+    def get_relations(self, obj_id: str, relation_type: str = None) -> list:
+        rels = self._relations_for_object(obj_id)
         if relation_type:
             rels = [r for r in rels if r.type == relation_type]
         return rels
+
+    def _relations_for_object(self, obj_id: str) -> list:
+        """Return all relations that touch the given object."""
+        return [
+            r for r in self.relations.values()
+            if r.source_id == obj_id or r.target_id == obj_id
+        ]

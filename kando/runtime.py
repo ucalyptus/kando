@@ -42,23 +42,32 @@ class Runtime:
             self._ledger.append([event])
             apply(world, event)
 
-            exhaust_event = self._check_budget(event, world)
-            if exhaust_event is not None:
-                self._ledger.append([exhaust_event])
+            if self._handle_budget(event, world):
                 return world
 
             if event.type == BUDGET_EXHAUSTED:
                 return world
 
-            for new_event in edge_logic.dispatch(event, world):
-                queue.append(new_event)
-
-            for r in self._responders:
-                if r.matches(event):
-                    for new_event in r.handle(event, world):
-                        queue.append(new_event)
+            self._dispatch(event, world, queue)
 
         return world
+
+    def _handle_budget(self, event: KandoEvent, world: World) -> bool:
+        """Check budget and commit exhaustion event if needed. Returns True if exhausted."""
+        exhaust_event = self._check_budget(event, world)
+        if exhaust_event is not None:
+            self._ledger.append([exhaust_event])
+            return True
+        return False
+
+    def _dispatch(self, event: KandoEvent, world: World, queue: deque) -> None:
+        """Dispatch event to edge logic and all matching responders, enqueuing outputs."""
+        for new_event in edge_logic.dispatch(event, world):
+            queue.append(new_event)
+        for r in self._responders:
+            if r.matches(event):
+                for new_event in r.handle(event, world):
+                    queue.append(new_event)
 
     def replay(self, strict: bool = False) -> World:
         """Permissive replay: reproject ledger. Strict mode raises NotImplementedError."""
