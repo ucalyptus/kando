@@ -13,3 +13,4 @@ node_modules/
 site/
 .kando_snapshots/
 _internal/
+.claude/
