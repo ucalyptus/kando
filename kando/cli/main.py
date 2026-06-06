@@ -72,6 +72,11 @@ def cmd_run(args) -> None:
     responders = kit_mod.create_kit()
     ledger = _make_ledger(run_id)
 
+    if os.environ.get("ANTHROPIC_API_KEY"):
+        from kando.responders.anthropic_llm import anthropic_llm
+        from kando.responders.llm_executor import LLMExecutorResponder
+        responders = responders + [LLMExecutorResponder(anthropic_llm)]
+
     if hasattr(kit_mod, "seed_from_goal"):
         seed_events = list(kit_mod.seed_from_goal(args.goal, run_id))
     else:
