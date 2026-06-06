@@ -70,10 +70,30 @@ class Runtime:
                     queue.append(new_event)
 
     def replay(self, strict: bool = False) -> World:
-        """Permissive replay: reproject ledger. Strict mode raises NotImplementedError."""
-        if strict:
-            raise NotImplementedError("Strict replay not yet implemented")
-        return self.load()
+        """Replay the run.
+
+        Permissive (default): reproject the ledger as-is — fast, no re-firing.
+        Strict: re-execute seed events through responders to verify determinism.
+            The resulting world must match the permissive projection; if it
+            diverges, the run is non-deterministic under the current responders.
+        """
+        if not strict:
+            return self.load()
+
+        # Strict: re-run from root events through the full responder loop
+        from kando.ledger.memory import MemoryLedgerStore
+        all_events = list(self._ledger.read_all())
+        seed_events = [e for e in all_events if not e.cause]
+        if not seed_events:
+            return self.load()
+
+        replay_ledger = MemoryLedgerStore(self._ledger.stream_name() + ":strict-replay")
+        replay_runtime = Runtime(
+            ledger=replay_ledger,
+            responders=self._responders,
+            budget=Budget(max_events=len(all_events) * 2),
+        )
+        return replay_runtime.run(seed_events)
 
     def _check_budget(self, event: KandoEvent, world: World) -> KandoEvent | None:
         """Return a budget-exhausted event if limits are hit, else None."""

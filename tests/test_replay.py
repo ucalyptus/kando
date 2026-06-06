@@ -51,11 +51,29 @@ def test_replay_same_as_direct_projection():
         assert replayed.objects[oid].data == direct.objects[oid].data
 
 
-def test_replay_strict_raises():
-    store = MemoryLedgerStore("strict-replay")
+def test_replay_strict_empty_ledger_returns_empty_world():
+    """Strict replay on an empty ledger returns an empty world."""
+    store = MemoryLedgerStore("strict-replay-empty")
     runtime = Runtime(ledger=store, responders=[])
-    with pytest.raises(NotImplementedError):
-        runtime.replay(strict=True)
+    world = runtime.replay(strict=True)
+    assert world.objects == {}
+
+
+def test_replay_strict_produces_same_world_as_permissive():
+    """Strict replay (re-fires responders) must match permissive (reproject) for deterministic kits."""
+    from kando.schema.events import OBJECT_CREATED
+    from datetime import datetime, timezone
+
+    store = MemoryLedgerStore("strict-replay-parity")
+    seed = KandoEvent("root-1", OBJECT_CREATED, "run:x", "cli", [], datetime.now(timezone.utc),
+                      {"id": "obj-root", "type": "node", "data": {"v": 1}})
+    store.append([seed])
+
+    runtime = Runtime(ledger=store, responders=[])
+    permissive_world = runtime.replay(strict=False)
+    strict_world = runtime.replay(strict=True)
+
+    assert set(permissive_world.objects.keys()) == set(strict_world.objects.keys())
 
 
 def test_replay_empty_ledger():

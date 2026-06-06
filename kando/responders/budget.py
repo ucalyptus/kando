@@ -1,5 +1,7 @@
 from __future__ import annotations
+import time
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from typing import Iterator
 from kando.schema.events import KandoEvent, BUDGET_EXHAUSTED
 from kando.world.graph import World
@@ -21,20 +23,34 @@ class BudgetEnforcer:
         self._run_id = run_id
         self._event_count = 0
         self._llm_cost = 0.0
+        self._start_time = time.monotonic()
+        self._depths: dict[str, int] = {}
 
     def check(self, event: KandoEvent, world: World) -> Iterator[KandoEvent]:
         self._event_count += 1
         if event.type == "llm.response":
             self._llm_cost += event.data.get("cost_usd", 0.0)
 
+        # Track causal depth
+        if event.cause:
+            depth = max(self._depths.get(c, 0) for c in event.cause) + 1
+        else:
+            depth = 0
+        self._depths[event.id] = depth
+
+        elapsed = time.monotonic() - self._start_time
+
         reasons = []
         if self._event_count >= self._budget.max_events:
             reasons.append(f"max_events={self._budget.max_events}")
         if self._llm_cost >= self._budget.max_llm_cost_usd:
             reasons.append(f"max_llm_cost_usd={self._budget.max_llm_cost_usd}")
+        if elapsed >= self._budget.max_wall_seconds:
+            reasons.append(f"max_wall_seconds={self._budget.max_wall_seconds} (elapsed={elapsed:.1f}s)")
+        if depth >= self._budget.max_recursion_depth:
+            reasons.append(f"max_recursion_depth={self._budget.max_recursion_depth} (depth={depth})")
 
         if reasons:
-            from datetime import datetime, timezone
             yield KandoEvent(
                 id=f"budget-{self._event_count}",
                 type=BUDGET_EXHAUSTED,
@@ -42,5 +58,6 @@ class BudgetEnforcer:
                 actor="budget-enforcer",
                 cause=[event.id],
                 timestamp=datetime.now(timezone.utc),
-                data={"reasons": reasons},
+                data={"reasons": reasons, "event_count": self._event_count,
+                      "llm_cost_usd": self._llm_cost, "elapsed_seconds": elapsed, "depth": depth},
             )
