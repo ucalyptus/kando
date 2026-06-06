@@ -1,0 +1,27 @@
+version: "3.9"
+services:
+  kurrentdb:
+    image: kurrent/kurrentdb:latest
+    ports:
+      - "2113:2113"   # HTTP API + UI
+      - "1113:1113"   # TCP (legacy)
+    environment:
+      - EVENTSTORE_CLUSTER_SIZE=1
+      - EVENTSTORE_RUN_PROJECTIONS=All
+      - EVENTSTORE_START_STANDARD_PROJECTIONS=true
+      - EVENTSTORE_INSECURE=true
+    volumes:
+      - kurrentdb-data:/var/lib/kurrentdb
+
+  kando:
+    build: .
+    depends_on:
+      - kurrentdb
+    environment:
+      - KURRENTDB_URL=http://kurrentdb:2113
+    volumes:
+      - .:/app
+    working_dir: /app
+
+volumes:
+  kurrentdb-data:
