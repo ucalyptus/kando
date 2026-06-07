@@ -91,6 +91,44 @@ def test_snapshot_overwrites_previous():
     assert "obj-x" not in restored_world.objects
 
 
+def test_snapshot_roundtrip_object_id():
+    w = World()
+    w.objects["obj-a"] = WorldObject(id="obj-a", type="claim", data={})
+    save_snapshot("run-obj-id", w, position=0)
+    restored, _ = load_snapshot("run-obj-id")
+    assert restored.objects["obj-a"].id == "obj-a"
+
+
+def test_snapshot_roundtrip_relation_id():
+    w = World()
+    w.relations["rel-1"] = Relation(id="rel-1", type="supports", source_id="a", target_id="b", data={})
+    save_snapshot("run-rel-id", w, position=0)
+    restored, _ = load_snapshot("run-rel-id")
+    assert restored.relations["rel-1"].id == "rel-1"
+
+
+def test_snapshot_roundtrip_relation_data():
+    w = World()
+    w.relations["rel-1"] = Relation(
+        id="rel-1", type="supports", source_id="a", target_id="b",
+        data={"weight": 0.9, "label": "strong"},
+    )
+    save_snapshot("run-rel-data", w, position=0)
+    restored, _ = load_snapshot("run-rel-data")
+    assert restored.relations["rel-1"].data == {"weight": 0.9, "label": "strong"}
+
+
+def test_snapshot_creates_nested_directory(tmp_path, monkeypatch):
+    import kando.world.snapshot as snap
+    deep_dir = tmp_path / "a" / "b" / "snapshots"
+    monkeypatch.setenv("KANDO_SNAPSHOT_DIR", str(deep_dir))
+    snap._SNAPSHOT_DIR = deep_dir
+    assert not deep_dir.exists()
+    save_snapshot("run-nested", World(), position=0)
+    assert deep_dir.exists()
+    assert (deep_dir / "run-nested.json").exists()
+
+
 def test_snapshot_file_is_valid_json(tmp_path):
     import kando.world.snapshot as snap
     w = _world_with_objects()

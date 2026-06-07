@@ -51,7 +51,7 @@ where = ["."]
 include = ["kando*", "kits*"]
 
 [tool.mutmut]
-paths_to_mutate = [
+source_paths = [
     "kando/world/",
     "kando/ledger/",
     "kando/cache/",
@@ -63,5 +63,6 @@ also_copy = [
     "kando/responders/",
     "kando/runtime.py",
     "kando/__init__.py",
+    "kits/",
+    "features/",
 ]
-tests_dir = ["tests/"]
