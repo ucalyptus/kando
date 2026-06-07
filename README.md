@@ -1,7 +1,7 @@
 # Kando
 
 <p align="center">
-  <img src="logo.jpg" alt="Kando logo" width="160" />
+  <img src="docs/assets/logo.png" alt="Kando logo" width="160" />
 </p>
 
 **কাণ্ড** — Bengali for *event*, *incident*, *episode*.
