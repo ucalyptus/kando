@@ -1,0 +1,8 @@
+/* Navbar logo: white background so the transparent PNG is visible on dark header */
+.md-header__button.md-logo img {
+  background: #ffffff;
+  border-radius: 6px;
+  padding: 3px;
+  height: 36px;
+  width: 36px;
+}
