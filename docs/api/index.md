@@ -14,6 +14,7 @@ Complete API reference for the `kando` Python package.
 | [LLM Cache](cache.md) | `LLMCache`, `ScopedLLMCache` |
 | [Trace & Lineage](trace.md) | `build_lineage_index()`, `explain()` |
 | [Branch & Diff](branch.md) | `BranchMeta`, `fork()`, `WorldDiff`, `diff()` |
+| [LLM Executor](llm_executor.md) | `LLMExecutorResponder`, `LLMFn` |
 
 ## Installation
 

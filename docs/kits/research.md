@@ -40,10 +40,27 @@ Goal created
 3 × Finding created (status: "pending")
     + 3 × answers relations (Finding → Question)
     │
+    ├─▶ on_pending_finding_created (fires for each pending Finding)
+    │   3 × llm.request events emitted
+    │       │
+    │       ▼ LLMExecutorResponder (if ANTHROPIC_API_KEY or OPENROUTER_API_KEY set)
+    │       3 × llm.response events
+    │           │
+    │           ▼ on_llm_response (patches each Finding with LLM text)
+    │           3 × object.patched events (status → "complete")
+    │               │
+    │               ▼ on_finding_patched (when all findings are complete)
+    │               1 × object.patched on Synthesis (summary filled in)
+    │
     ▼ on_finding_created (when all questions have findings)
-1 × Synthesis created
+1 × Synthesis created (status: "pending")
     + 1 × synthesizes relation (Synthesis → Goal)
 ```
+
+!!! info "Without an LLM API key"
+    When no `ANTHROPIC_API_KEY` or `OPENROUTER_API_KEY` is set, the `llm.request` events
+    are written to the ledger but no executor fires. Findings and synthesis remain in
+    `"pending"` status. You can attach your own `LLMExecutorResponder` to fill them in.
 
 ## Default decomposition
 
@@ -96,7 +113,6 @@ def _llm_answer(event: KandoEvent, world: World):
         actor="llm-researcher", cause=[event.id],
         data={"id": finding_id, "type": FINDING,
               "data": {"text": "...", "question_id": event.data["id"]}},
-        run_id_counter=0,
     )
 
 llm_responder = Responder(

@@ -175,4 +175,7 @@ See [MCP Server](mcp.md) for details.
 | Variable | Description |
 |---|---|
 | `EVENTSTORE_URL` | EventStoreDB URL, e.g. `http://localhost:2113`. If unset, all runs use the in-memory backend. |
+| `ANTHROPIC_API_KEY` | Anthropic API key. When set, the CLI auto-attaches an `LLMExecutorResponder` using the Anthropic SDK to handle `llm.request` events. |
+| `OPENROUTER_API_KEY` | OpenRouter API key. Takes priority over `ANTHROPIC_API_KEY`. Routes LLM requests through OpenRouter. |
+| `OPENROUTER_MODEL` | Override the OpenRouter model (default: `anthropic/claude-haiku-4-5`). Only used when `OPENROUTER_API_KEY` is set. |
 | `KANDO_SNAPSHOT_DIR` | Directory for world snapshots. Default: `.kando_snapshots` in the working directory. |

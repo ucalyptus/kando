@@ -33,7 +33,16 @@ kando run kits/diligence --goal "Evaluate Stripe"
 Company created
     │
     ▼ on_company_created
-Claim created (pending research)
+Claim created (status: "pending")
+    │
+    ├─▶ on_pending_claim_created
+    │   llm.request event emitted
+    │       │
+    │       ▼ LLMExecutorResponder (if ANTHROPIC_API_KEY or OPENROUTER_API_KEY set)
+    │       llm.response event
+    │           │
+    │           ▼ on_llm_response
+    │           object.patched (Claim text filled in, status → "complete")
     │
     ▼ on_evidence_created (when Evidence added)
 Relation: sourced_from (Evidence → Claim)
@@ -51,6 +60,11 @@ Report created (company_id)
     ▼ on_report_requested
 Relation: depends_on (Report → Company)
 ```
+
+!!! info "Without an LLM API key"
+    When no `ANTHROPIC_API_KEY` or `OPENROUTER_API_KEY` is set, the `llm.request` event
+    is written to the ledger but no executor fires. The Claim remains in `"pending"`
+    status. You can attach your own `LLMExecutorResponder` to fill it in.
 
 ## Example run
 

@@ -35,7 +35,6 @@ def _on_task_created(event: KandoEvent, world: World) -> Iterator[KandoEvent]:
         cause=[event.id],
         data={"id": f"subtask-{_COUNTER}", "type": SUBTASK,
               "data": {"text": "Step 1", "parent": task_id}},
-        run_id_counter=_COUNTER,
     )
 
 def create_kit() -> list[Responder]:

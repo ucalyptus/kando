@@ -184,6 +184,21 @@ kando-mcp  # starts stdio MCP server
 
 Tools: `start_run`, `query_world`, `fork_run`, `diff_branches`, `explain_trace`.
 
+### LLM integration
+
+Set an API key to enable live LLM calls during runs:
+
+```bash
+# Option 1: Anthropic SDK (direct)
+export ANTHROPIC_API_KEY=sk-ant-...
+
+# Option 2: OpenRouter (supports multiple providers)
+export OPENROUTER_API_KEY=sk-or-...
+export OPENROUTER_MODEL=anthropic/claude-haiku-4-5  # optional override
+```
+
+Without an API key, kits still run — `llm.request` events are written to the ledger but no executor responds. Claims and findings remain in `"pending"` status.
+
 ---
 
 ## References

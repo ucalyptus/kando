@@ -74,7 +74,8 @@ class KandoEvent:
 | `budget.exhausted` | A budget limit was hit; the run stops |
 | `llm.request` / `llm.response` | LLM call lifecycle (for cost tracking) |
 | `tool.called` / `tool.returned` | Tool invocation lifecycle |
-| `responder.fired` / `responder.completed` | Responder lifecycle |
+| `responder.fired` / `responder.completed` / `responder.failed` | Responder lifecycle |
+| `kit.loaded` | A kit module was loaded by the runtime |
 
 ---
 

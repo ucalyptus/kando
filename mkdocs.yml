@@ -99,4 +99,22 @@ nav:
       - LLM Cache: api/cache.md
       - Trace & Lineage: api/trace.md
       - Branch & Diff: api/branch.md
+      - LLM Executor: api/llm_executor.md
   - Contributing: contributing.md
+  - ADRs:
+      - Overview: adr/index.md
+      - ADR-001 Event Log as Source of Truth: adr/ADR-001-event-log-as-source-of-truth.md
+      - ADR-002 Responder Pattern: adr/ADR-002-responder-pattern.md
+      - ADR-003 World as Deterministic Projection: adr/ADR-003-world-as-deterministic-projection.md
+      - ADR-004 Budget Enforcement at Runtime: adr/ADR-004-budget-enforcement-at-runtime.md
+      - ADR-005 Intention–Effect Split: adr/ADR-005-intention-effect-split.md
+      - ADR-006 Object Patched Shallow Merge: adr/ADR-006-object-patched-shallow-merge.md
+      - ADR-007 LLM Executor as Pluggable Factory: adr/ADR-007-llm-executor-as-pluggable-factory.md
+      - ADR-008 UUID-Based Event IDs: adr/ADR-008-uuid-based-event-ids.md
+      - ADR-009 LLM Cache via World Context: adr/ADR-009-llm-cache-via-world-context.md
+      - ADR-010 Branch Fork via Prefix Cache: adr/ADR-010-branch-fork-via-prefix-cache.md
+      - ADR-011 Synchronous Runtime Loop: adr/ADR-011-synchronous-runtime-loop.md
+      - ADR-012 Hash-Verified Replay: adr/ADR-012-hash-verified-replay.md
+      - ADR-013 Schema Boundary Contracts: adr/ADR-013-schema-boundary-contracts.md
+      - ADR-014 Multi-Agent Concurrency: adr/ADR-014-multi-agent-concurrency.md
+      - ADR-015 Edge Logic Registry: adr/ADR-015-edge-logic-registry.md
