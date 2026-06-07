@@ -22,6 +22,7 @@ and efficient (incremental apply for each new event).
 - `tests/test_properties.py` — Hypothesis property tests
 
 ## Status
-- DAE coverage: ❌ feature.md ❌ acs.md ❌ spec.md ❌ acceptance tests
-- Existing tests: BDD feature file + snapshot unit tests (in flat layout)
-- Next step: `/engineer.discover-acs` (reverse-engineer mode) to extract acs.md
+- DAE coverage: ✅ feature.md ✅ acs.md (31 ACs) ✅ spec.md (34 scenarios) ✅ acceptance tests (210/210)
+- Mutation score: 95.4% (188/197) on `kando/world/` — above 0.80 charter threshold
+- Completed: 2026-06-06 — all checkpoints CP0–CP8 done
+- Linear: SAY-5 closed
