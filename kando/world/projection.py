@@ -26,9 +26,10 @@ def apply(world: World, event: KandoEvent) -> None:
             data=copy.deepcopy(event.data.get("data", {})),
         )
     elif event.type == ev.OBJECT_PATCHED:
-        obj = world.objects.get(event.data["id"])
-        if obj:
-            obj.data.update(copy.deepcopy(event.data.get("patch", {})))
+        obj_id = event.data["id"]
+        if obj_id not in world.objects:
+            raise KeyError(f"OBJECT_PATCHED refers to unknown object: {obj_id!r}")
+        world.objects[obj_id].data.update(copy.deepcopy(event.data.get("patch", {})))
     elif event.type == ev.BUDGET_EXHAUSTED:
         world.context["budget_exhausted"] = True
     elif event.type == ev.RELATION_CREATED:

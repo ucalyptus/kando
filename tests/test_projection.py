@@ -2,6 +2,8 @@
 from __future__ import annotations
 from datetime import datetime, timezone
 
+import pytest
+
 from kando.schema.events import KandoEvent, OBJECT_CREATED, OBJECT_PATCHED
 from kando.world.graph import World, WorldObject
 from kando.world.projection import apply
@@ -53,3 +55,15 @@ def test_patch_data_is_deep_copied_on_apply():
     event.data["patch"]["nested"]["v"] = 999
 
     assert world.objects["obj-1"].data["nested"]["v"] == 1
+
+
+def test_object_patched_missing_raises():
+    """OBJECT_PATCHED on a non-existent object must raise KeyError, not silently no-op."""
+    world = World()
+    event = KandoEvent(
+        id="p-nonexistent", type=OBJECT_PATCHED,
+        source="run:test", actor="test", cause=[], timestamp=_ts(),
+        data={"id": "nonexistent-id", "patch": {"status": "complete"}},
+    )
+    with pytest.raises(KeyError, match="nonexistent-id"):
+        apply(world, event)

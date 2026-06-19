@@ -88,7 +88,13 @@ class Runtime:
         all_events = list(self._ledger.read_all())
         seed_events = [e for e in all_events if not e.cause]
         if not seed_events:
-            return self.load()
+            if not all_events:
+                return self.load()
+            raise ValueError(
+                f"strict replay requested but ledger '{self._ledger.stream_name()}' "
+                f"contains {len(all_events)} events with no root (cause=[]) events. "
+                "The ledger may be compacted or corrupted."
+            )
 
         replay_ledger = MemoryLedgerStore(self._ledger.stream_name() + ":strict-replay")
         replay_runtime = Runtime(
