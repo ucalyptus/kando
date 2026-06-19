@@ -1,25 +1,38 @@
 from __future__ import annotations
 import hashlib
 import json
+from collections import OrderedDict
 from typing import Any
 
 
 class LLMCache:
-    """Content-addressed cache of LLM responses keyed by normalized request hash."""
+    """Content-addressed cache of LLM responses keyed by normalized request hash.
 
-    def __init__(self) -> None:
-        self._store: dict[str, Any] = {}
+    Uses an LRU eviction policy backed by ``collections.OrderedDict`` so the
+    cache never grows beyond *max_entries* entries.
+    """
+
+    def __init__(self, max_entries: int = 2048) -> None:
+        self._store: OrderedDict[str, Any] = OrderedDict()
+        self._max_entries = max_entries
 
     def _key(self, request: dict) -> str:
         normalized = json.dumps(request, sort_keys=True, ensure_ascii=False)
         return hashlib.sha256(normalized.encode()).hexdigest()
 
     def get(self, request: dict) -> Any | None:
-        return self._store.get(self._key(request))
+        key = self._key(request)
+        if key not in self._store:
+            return None
+        self._store.move_to_end(key)
+        return self._store[key]
 
     def put(self, request: dict, response: Any) -> str:
         key = self._key(request)
         self._store[key] = response
+        self._store.move_to_end(key)
+        while len(self._store) > self._max_entries:
+            self._store.popitem(last=False)
         return key
 
     def scope(self, prefix: str) -> "ScopedLLMCache":
@@ -31,12 +44,16 @@ class LLMCache:
 
 
 class ScopedLLMCache:
-    """A cache scoped to a branch prefix. Writes go to own store; misses fall back to parent."""
+    """A cache scoped to a branch prefix. Writes go to own store; misses fall back to parent.
 
-    def __init__(self, parent: LLMCache, prefix: str) -> None:
+    Uses the same LRU eviction policy as ``LLMCache`` — bounded by *max_entries*.
+    """
+
+    def __init__(self, parent: LLMCache, prefix: str, max_entries: int = 2048) -> None:
         self._parent = parent
         self._prefix = prefix
-        self._store: dict[str, Any] = {}
+        self._store: OrderedDict[str, Any] = OrderedDict()
+        self._max_entries = max_entries
 
     def _key(self, request: dict) -> str:
         scoped = {"_scope": self._prefix, **request}
@@ -44,14 +61,18 @@ class ScopedLLMCache:
         return hashlib.sha256(normalized.encode()).hexdigest()
 
     def get(self, request: dict) -> Any | None:
-        local = self._store.get(self._key(request))
-        if local is not None:
-            return local
+        key = self._key(request)
+        if key in self._store:
+            self._store.move_to_end(key)
+            return self._store[key]
         return self._parent.get(request)
 
     def put(self, request: dict, response: Any) -> str:
         key = self._key(request)
         self._store[key] = response
+        self._store.move_to_end(key)
+        while len(self._store) > self._max_entries:
+            self._store.popitem(last=False)
         return key
 
     def __len__(self) -> int:

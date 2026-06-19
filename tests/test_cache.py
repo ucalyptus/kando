@@ -79,3 +79,29 @@ def test_scoped_cache_length_counts_only_local():
     scoped = parent.scope("branch-1")
     scoped.put({"q": "child"}, "child-resp")
     assert len(scoped) == 1
+
+
+# ---------------------------------------------------------------------------
+# LRU eviction tests
+# ---------------------------------------------------------------------------
+
+def test_llm_cache_lru_eviction():
+    cache = LLMCache(max_entries=3)
+    for i in range(4):
+        cache.put({"q": str(i)}, f"resp-{i}")
+    # First entry (q=0) should be evicted
+    assert cache.get({"q": "0"}) is None
+    assert cache.get({"q": "3"}) == "resp-3"
+    assert len(cache) == 3
+
+
+def test_llm_cache_lru_order():
+    cache = LLMCache(max_entries=3)
+    for i in range(3):
+        cache.put({"q": str(i)}, f"resp-{i}")
+    # Access q=0 to promote it
+    cache.get({"q": "0"})
+    # Add q=3 — q=1 (least recently used) should be evicted, not q=0
+    cache.put({"q": "3"}, "resp-3")
+    assert cache.get({"q": "0"}) == "resp-0"
+    assert cache.get({"q": "1"}) is None
