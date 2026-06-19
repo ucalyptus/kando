@@ -67,3 +67,29 @@ def test_delivery_bus_subscriber_exception_does_not_crash_runtime():
     # Should not raise even though the subscriber crashes
     world = runtime.run([_evt("s1")])
     assert "s1" in world.objects
+
+
+def test_apply_failure_does_not_corrupt_ledger():
+    """If apply() raises, the event must not be committed to the ledger."""
+    from kando.schema.events import make_event, OBJECT_PATCHED, OBJECT_CREATED
+
+    ledger = MemoryLedgerStore("run:test-crash")
+    runtime = Runtime(ledger=ledger, responders=[])
+
+    # First create a valid object
+    seed = make_event(type=OBJECT_CREATED, source="run:test", actor="test",
+                      cause=[], data={"id": "obj-1", "type": "test"})
+
+    # Then try to patch a non-existent object — apply() raises KeyError
+    bad_patch = make_event(type=OBJECT_PATCHED, source="run:test", actor="test",
+                           cause=[seed.id], data={"id": "nonexistent", "patch": {"x": 1}})
+
+    with pytest.raises(KeyError):
+        runtime.run([seed, bad_patch])
+
+    # The bad_patch event must NOT be in the ledger
+    all_events = list(ledger.read_all())
+    committed_ids = [e.id for e in all_events]
+    assert bad_patch.id not in committed_ids, (
+        "Bad event was committed to ledger before apply() raised — torn state"
+    )
