@@ -90,3 +90,20 @@ def test_explain_filters_unknown_parents():
     ids = [e.id for e in chain]
     assert "orphan" in ids
     assert "ghost-parent" not in ids
+
+
+# ---------------------------------------------------------------------------
+# Performance regression test
+# ---------------------------------------------------------------------------
+
+def test_trace_large_linear_chain():
+    """deque.popleft() should handle 5k-event chains without O(n^2) slowdown."""
+    import time
+    # Build a linear chain: 0 -> 1 -> 2 -> ... -> 4999
+    index = {str(i): [str(i-1)] for i in range(1, 5000)}
+    index["0"] = []
+    start = time.monotonic()
+    result = trace("4999", index)
+    elapsed = time.monotonic() - start
+    assert len(result) == 5000
+    assert elapsed < 1.0, f"trace() took {elapsed:.2f}s — likely O(n^2) regression"

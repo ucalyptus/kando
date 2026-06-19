@@ -10,7 +10,7 @@ from kando.ledger.memory import MemoryLedgerStore
 from kando.responders.base import Responder
 from kando.responders.budget import Budget, BudgetEnforcer
 from kando.runtime import Runtime
-from kando.schema.events import KandoEvent, OBJECT_CREATED, BUDGET_EXHAUSTED
+from kando.schema.events import KandoEvent, OBJECT_CREATED, BUDGET_EXHAUSTED, LLM_RESPONSE, make_event
 from kando.world.graph import World
 
 
@@ -122,3 +122,31 @@ def test_runtime_depth_limit_stops_infinite_chain():
     assert len(all_events) < 20
     exhausted = [e for e in all_events if e.type == BUDGET_EXHAUSTED]
     assert len(exhausted) == 1
+
+
+# ---------------------------------------------------------------------------
+# Memory-leak regression: _depths must stay bounded
+# ---------------------------------------------------------------------------
+
+def test_depths_bounded():
+    """BudgetEnforcer._depths must not grow without bound."""
+    budget = Budget(max_events=10_000, max_recursion_depth=50)
+    enforcer = BudgetEnforcer(budget, run_id="test")
+    world = _FakeWorld()
+
+    # Build a 2000-event linear chain
+    prev_id = None
+    for i in range(2000):
+        event = make_event(
+            type="object.created",
+            source="run:test",
+            actor="test",
+            cause=[prev_id] if prev_id else [],
+            data={"id": f"obj-{i}", "type": "test"},
+        )
+        list(enforcer.check(event, world))
+        prev_id = event.id
+
+    # _depths should be bounded by max_recursion_depth * 4, not 2000
+    assert len(enforcer._depths) <= budget.max_recursion_depth * 5, \
+        f"_depths has {len(enforcer._depths)} entries — memory leak"
