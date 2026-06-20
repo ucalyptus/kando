@@ -13,7 +13,7 @@ from kando.schema.events import KandoEvent, BUDGET_EXHAUSTED
 class Runtime:
     """Wires ledger, world projection, responders, and budget into a single event loop.
 
-    Fails loudly on responder errors — never swallows exceptions.
+    Fails loudly on responder errors -- never swallows exceptions.
     """
 
     def __init__(
@@ -44,7 +44,7 @@ class Runtime:
 
         while queue:
             event = queue.popleft()
-            apply(world, event)           # mutate world first — if this raises, nothing is committed
+            apply(world, event)           # mutate world first -- if this raises, nothing is committed
             self._ledger.append([event])  # commit only after successful projection
 
             if self._handle_budget(event, world):
@@ -55,9 +55,9 @@ class Runtime:
         return world
 
     def _handle_budget(self, event: KandoEvent, world: World) -> bool:
-        """Check budget and commit exhaustion event if needed. Returns True if exhausted."""
-        exhaust_event = self._check_budget(event, world)
-        if exhaust_event is not None:
+        """Record accounting and commit exhaustion event if limits are breached. Returns True if exhausted."""
+        self._budget_enforcer.record(event, world)
+        for exhaust_event in self._budget_enforcer.violations(event):
             self._ledger.append([exhaust_event])
             apply(world, exhaust_event)
             return True
@@ -75,7 +75,7 @@ class Runtime:
     def replay(self, strict: bool = False) -> World:
         """Replay the run.
 
-        Permissive (default): reproject the ledger as-is — fast, no re-firing.
+        Permissive (default): reproject the ledger as-is -- fast, no re-firing.
         Strict: re-execute seed events through responders to verify determinism.
             The resulting world must match the permissive projection; if it
             diverges, the run is non-deterministic under the current responders.
@@ -103,9 +103,3 @@ class Runtime:
             budget=Budget(max_events=len(all_events) * 2),
         )
         return replay_runtime.run(seed_events)
-
-    def _check_budget(self, event: KandoEvent, world: World) -> KandoEvent | None:
-        """Return a budget-exhausted event if limits are hit, else None."""
-        for exhaust in self._budget_enforcer.check(event, world):
-            return exhaust
-        return None
