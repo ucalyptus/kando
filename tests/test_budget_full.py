@@ -10,7 +10,7 @@ from kando.ledger.memory import MemoryLedgerStore
 from kando.responders.base import Responder
 from kando.responders.budget import Budget, BudgetEnforcer
 from kando.runtime import Runtime
-from kando.schema.events import KandoEvent, OBJECT_CREATED, BUDGET_EXHAUSTED, LLM_RESPONSE, make_event
+from kando.schema.events import KandoEvent, OBJECT_CREATED, BUDGET_EXHAUSTED, make_event
 from kando.world.graph import World
 
 
@@ -37,15 +37,17 @@ def _enforcer(budget: Budget) -> BudgetEnforcer:
 
 def test_wall_clock_not_triggered_immediately():
     e = _enforcer(Budget(max_wall_seconds=60.0))
-    events = list(e.check(_evt("e0"), _FakeWorld()))
-    assert events == []
+    e.record(_evt("e0"), _FakeWorld())
+    assert e.violations(_evt("e0")) == []
 
 
 def test_wall_clock_triggers_when_exceeded(monkeypatch):
     e = _enforcer(Budget(max_wall_seconds=1.0))
     # Simulate 2 seconds elapsed
     e._start_time -= 2.0
-    events = list(e.check(_evt("e1"), _FakeWorld()))
+    ev = _evt("e1")
+    e.record(ev, _FakeWorld())
+    events = e.violations(ev)
     assert len(events) == 1
     assert events[0].type == BUDGET_EXHAUSTED
     reasons = events[0].data["reasons"]
@@ -58,15 +60,15 @@ def test_wall_clock_triggers_when_exceeded(monkeypatch):
 
 def test_recursion_depth_zero_for_root_event():
     e = _enforcer(Budget(max_recursion_depth=10))
-    list(e.check(_evt("root"), _FakeWorld()))
+    e.record(_evt("root"), _FakeWorld())
     assert e._depths["root"] == 0
 
 
 def test_recursion_depth_increments_with_cause():
     e = _enforcer(Budget(max_recursion_depth=10))
-    list(e.check(_evt("e0"), _FakeWorld()))
-    list(e.check(_evt("e1", ["e0"]), _FakeWorld()))
-    list(e.check(_evt("e2", ["e1"]), _FakeWorld()))
+    e.record(_evt("e0"), _FakeWorld())
+    e.record(_evt("e1", ["e0"]), _FakeWorld())
+    e.record(_evt("e2", ["e1"]), _FakeWorld())
     assert e._depths["e0"] == 0
     assert e._depths["e1"] == 1
     assert e._depths["e2"] == 2
@@ -74,9 +76,11 @@ def test_recursion_depth_increments_with_cause():
 
 def test_recursion_depth_triggers_budget_exhausted():
     e = _enforcer(Budget(max_recursion_depth=2))
-    list(e.check(_evt("e0"), _FakeWorld()))
-    list(e.check(_evt("e1", ["e0"]), _FakeWorld()))
-    events = list(e.check(_evt("e2", ["e1"]), _FakeWorld()))
+    e.record(_evt("e0"), _FakeWorld())
+    e.record(_evt("e1", ["e0"]), _FakeWorld())
+    ev2 = _evt("e2", ["e1"])
+    e.record(ev2, _FakeWorld())
+    events = e.violations(ev2)
     assert len(events) == 1
     assert events[0].type == BUDGET_EXHAUSTED
     assert any("max_recursion_depth" in r for r in events[0].data["reasons"])
@@ -84,10 +88,10 @@ def test_recursion_depth_triggers_budget_exhausted():
 
 def test_recursion_depth_uses_max_of_multiple_causes():
     e = _enforcer(Budget(max_recursion_depth=10))
-    list(e.check(_evt("a"), _FakeWorld()))      # depth 0
-    list(e.check(_evt("b", ["a"]), _FakeWorld()))  # depth 1
-    list(e.check(_evt("c", ["a"]), _FakeWorld()))  # depth 1
-    list(e.check(_evt("d", ["b", "c"]), _FakeWorld()))  # depth 2 (max(1,1)+1)
+    e.record(_evt("a"), _FakeWorld())      # depth 0
+    e.record(_evt("b", ["a"]), _FakeWorld())  # depth 1
+    e.record(_evt("c", ["a"]), _FakeWorld())  # depth 1
+    e.record(_evt("d", ["b", "c"]), _FakeWorld())  # depth 2 (max(1,1)+1)
     assert e._depths["d"] == 2
 
 
@@ -144,9 +148,21 @@ def test_depths_bounded():
             cause=[prev_id] if prev_id else [],
             data={"id": f"obj-{i}", "type": "test"},
         )
-        list(enforcer.check(event, world))
+        enforcer.record(event, world)
         prev_id = event.id
 
     # _depths should be bounded by max_recursion_depth * 4, not 2000
     assert len(enforcer._depths) <= budget.max_recursion_depth * 5, \
         f"_depths has {len(enforcer._depths)} entries — memory leak"
+
+
+def test_record_increments_even_without_violations():
+    """record() must always increment _event_count, independent of violations()."""
+    enforcer = BudgetEnforcer(Budget(max_events=100), run_id="test")
+    world = World()
+    event = make_event(type=OBJECT_CREATED, source="run:test", actor="test",
+                       cause=[], data={"id": "obj-1", "type": "test"})
+    enforcer.record(event, world)
+    assert enforcer._event_count == 1
+    # violations() should return empty (well under limit)
+    assert enforcer.violations(event) == []

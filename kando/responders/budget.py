@@ -2,7 +2,6 @@ from __future__ import annotations
 import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Iterator
 from kando.schema.events import KandoEvent, BUDGET_EXHAUSTED
 from kando.world.graph import World
 
@@ -25,13 +24,13 @@ class BudgetEnforcer:
         self._llm_cost = 0.0
         self._start_time = time.monotonic()
         self._depths: dict[str, int] = {}
+        self._last_depth = 0
 
-    def check(self, event: KandoEvent, world: World) -> Iterator[KandoEvent]:
+    def record(self, event: KandoEvent, world: World) -> None:
+        """Unconditional accounting -- call this for every event, always."""
         self._event_count += 1
         if event.type == "llm.response":
             self._llm_cost += event.data.get("cost_usd", 0.0)
-
-        # Track causal depth
         if event.cause:
             depth = max(self._depths.get(c, 0) for c in event.cause) + 1
         else:
@@ -41,9 +40,12 @@ class BudgetEnforcer:
         if len(self._depths) > self._budget.max_recursion_depth * 4:
             cutoff = depth - self._budget.max_recursion_depth
             self._depths = {k: v for k, v in self._depths.items() if v >= cutoff}
+        self._last_depth = depth
 
+    def violations(self, event: KandoEvent) -> list[KandoEvent]:
+        """Return budget-exhausted events if any limit is breached. Call after record()."""
         elapsed = time.monotonic() - self._start_time
-
+        depth = self._last_depth
         reasons = []
         if self._event_count >= self._budget.max_events:
             reasons.append(f"max_events={self._budget.max_events}")
@@ -53,15 +55,15 @@ class BudgetEnforcer:
             reasons.append(f"max_wall_seconds={self._budget.max_wall_seconds} (elapsed={elapsed:.1f}s)")
         if depth >= self._budget.max_recursion_depth:
             reasons.append(f"max_recursion_depth={self._budget.max_recursion_depth} (depth={depth})")
-
-        if reasons:
-            yield KandoEvent(
-                id=f"budget-{self._event_count}",
-                type=BUDGET_EXHAUSTED,
-                source=f"run:{self._run_id}",
-                actor="budget-enforcer",
-                cause=[event.id],
-                timestamp=datetime.now(timezone.utc),
-                data={"reasons": reasons, "event_count": self._event_count,
-                      "llm_cost_usd": self._llm_cost, "elapsed_seconds": elapsed, "depth": depth},
-            )
+        if not reasons:
+            return []
+        return [KandoEvent(
+            id=f"budget-{self._event_count}",
+            type=BUDGET_EXHAUSTED,
+            source=f"run:{self._run_id}",
+            actor="budget-enforcer",
+            cause=[event.id],
+            timestamp=datetime.now(timezone.utc),
+            data={"reasons": reasons, "event_count": self._event_count,
+                  "llm_cost_usd": self._llm_cost, "elapsed_seconds": elapsed, "depth": depth},
+        )]
