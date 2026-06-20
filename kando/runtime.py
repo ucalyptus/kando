@@ -44,8 +44,8 @@ class Runtime:
 
         while queue:
             event = queue.popleft()
-            self._ledger.append([event])
-            apply(world, event)
+            apply(world, event)           # mutate world first — if this raises, nothing is committed
+            self._ledger.append([event])  # commit only after successful projection
 
             if self._handle_budget(event, world):
                 return world

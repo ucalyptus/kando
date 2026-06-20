@@ -23,7 +23,12 @@ def test_projection_is_deterministic():
 
 
 def test_projecting_in_reverse_order_fails():
-    """Applying events in reverse order must NOT produce the same world as forward order."""
+    """Applying events in reverse order must NOT produce the same world as forward order.
+
+    Since OBJECT_PATCHED now raises KeyError for unknown objects, projecting in
+    reverse (patch before create) raises rather than silently ignoring the patch.
+    Either way, reversed order never yields a valid equivalent world.
+    """
     events = [
         KandoEvent("e1", OBJECT_CREATED, "run:r", "t", [], ts(),
                    {"id": "o1", "type": "x", "data": {"v": 1}}),
@@ -31,12 +36,12 @@ def test_projecting_in_reverse_order_fails():
                    {"id": "o1", "patch": {"v": 99}}),
     ]
     forward_world = project(iter(events))
-    # Reverse: patch arrives before create — patched object doesn't exist yet, so patch is a no-op.
-    reversed_world = project(iter(reversed(events)))
-    # Forward world has v=99; reversed world has v=1 (patch was ignored).
     assert forward_world.objects["o1"].data["v"] == 99
-    assert reversed_world.objects["o1"].data["v"] == 1
-    assert forward_world.objects["o1"].data != reversed_world.objects["o1"].data
+
+    # Reverse: OBJECT_PATCHED arrives before OBJECT_CREATED — object doesn't exist yet.
+    # apply() now raises KeyError rather than silently ignoring the out-of-order patch.
+    with pytest.raises(KeyError):
+        project(iter(reversed(events)))
 
 
 def test_duplicate_object_created_is_last_write_wins():
