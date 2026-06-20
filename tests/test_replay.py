@@ -82,3 +82,24 @@ def test_replay_empty_ledger():
     world = runtime.replay()
     assert world.objects == {}
     assert world.relations == {}
+
+
+def test_strict_replay_raises_on_no_root_events():
+    """replay(strict=True) must raise when all events have causes (no root events)."""
+    import pytest
+    from kando.ledger.memory import MemoryLedgerStore
+    from kando.runtime import Runtime
+    from kando.schema.events import make_event, OBJECT_CREATED
+
+    ledger = MemoryLedgerStore("run:test-corrupt")
+
+    # Create events where every event has a cause (no root events)
+    e1 = make_event(type=OBJECT_CREATED, source="run:test", actor="test",
+                    cause=["fake-root-id"], data={"id": "obj-1", "type": "thing"})
+    e2 = make_event(type=OBJECT_CREATED, source="run:test", actor="test",
+                    cause=[e1.id], data={"id": "obj-2", "type": "thing"})
+    ledger.append([e1, e2])
+
+    runtime = Runtime(ledger=ledger, responders=[])
+    with pytest.raises(ValueError, match="no root"):
+        runtime.replay(strict=True)

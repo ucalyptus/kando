@@ -1,4 +1,5 @@
 from __future__ import annotations
+from collections import deque
 from kando.schema.events import KandoEvent
 
 
@@ -11,9 +12,9 @@ def trace(event_id: str, index: dict[str, list[str]]) -> list[str]:
     """Return the full causal chain from event_id back to root, in BFS order."""
     chain: list[str] = []
     seen: set[str] = set()
-    queue = [event_id]
+    queue: deque[str] = deque([event_id])
     while queue:
-        eid = queue.pop(0)
+        eid = queue.popleft()
         if eid in seen:
             continue
         seen.add(eid)

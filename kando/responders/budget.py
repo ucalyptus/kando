@@ -37,6 +37,10 @@ class BudgetEnforcer:
         else:
             depth = 0
         self._depths[event.id] = depth
+        # Prune entries that can never be referenced again as a cause
+        if len(self._depths) > self._budget.max_recursion_depth * 4:
+            cutoff = depth - self._budget.max_recursion_depth
+            self._depths = {k: v for k, v in self._depths.items() if v >= cutoff}
 
         elapsed = time.monotonic() - self._start_time
 
