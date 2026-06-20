@@ -55,9 +55,9 @@ class Runtime:
         return world
 
     def _handle_budget(self, event: KandoEvent, world: World) -> bool:
-        """Check budget and commit exhaustion event if needed. Returns True if exhausted."""
-        exhaust_event = self._check_budget(event, world)
-        if exhaust_event is not None:
+        """Record accounting and commit exhaustion event if limits are breached. Returns True if exhausted."""
+        self._budget_enforcer.record(event, world)
+        for exhaust_event in self._budget_enforcer.violations(event):
             self._ledger.append([exhaust_event])
             apply(world, exhaust_event)
             return True
@@ -98,8 +98,3 @@ class Runtime:
         )
         return replay_runtime.run(seed_events)
 
-    def _check_budget(self, event: KandoEvent, world: World) -> KandoEvent | None:
-        """Return a budget-exhausted event if limits are hit, else None."""
-        for exhaust in self._budget_enforcer.check(event, world):
-            return exhaust
-        return None
